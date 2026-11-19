@@ -2462,15 +2462,7 @@ public class GameView extends View {
                 return true;
             }
 
-            // Anywhere else starts the game
-            gameState = STATE_PLAYING;
-            score = 0;
-            pipes.clear();
-            particles.clear();
-            pipeSpawnTimer = 0.5f;
-            worldSpeed = 160;
-            resetBird();
-            flap();
+            // Anywhere else on menu does nothing (must press PLAY button)
             return true;
         } else if (gameState == STATE_PLAYING) {
             flap();
