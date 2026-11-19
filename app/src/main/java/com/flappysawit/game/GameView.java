@@ -11,9 +11,8 @@ import android.graphics.RadialGradient;
 import android.graphics.RectF;
 import android.graphics.Shader;
 import android.graphics.Typeface;
-import android.media.AudioFormat;
-import android.media.AudioManager;
-import android.media.AudioTrack;
+import android.media.AudioAttributes;
+import android.media.SoundPool;
 import android.os.Vibrator;
 import android.view.MotionEvent;
 import android.view.View;
@@ -44,6 +43,31 @@ public class GameView extends View {
     private float impactFlashTimer = 0;
     private float gameOverAnimProgress = 0;
     private boolean birdHitGround = false;
+
+    // ========== SATIRICAL HEADLINES & QUOTES ==========
+    private String currentSatireQuote = "Mana dana reboisasi 10 triliun?!";
+    private float satireQuoteTimer = 0;
+    private static final String[] SATIRE_QUOTES = {
+        "Mana dana reboisasi 10 triliun?!",
+        "Pipa siapa ini di hutan lindung?!",
+        "3,3 juta hektar sawit kok ilegal?",
+        "Stop bakar hutan demi cuan pribadi!",
+        "KPK tolong periksa berkas HGU ini!",
+        "Sawit subur, rakyat yang sesak asap!",
+        "Audit izin sawit mafia sekarang juga!",
+        "Bansos sawit jangan dikorupsi oi!",
+        "Hutan adat dirampas, burung mau ke mana?",
+        "Pejabat kongkalikong, alam yang rugi!"
+    };
+
+    private static final String[] SATIRE_HEADLINES = {
+        "3,3 Juta Hektar Kebun Sawit Masuk Kawasan Hutan Lindung",
+        "Dana Reboisasi Triliunan Lenyap, Hutan Tetap Terbakar",
+        "Berkas Perizinan HGU Hilang Misterius Saat Mau Diaudit",
+        "Pejabat Dalih Asap Dari Tetangga, Rakyat Malah Sesak Napas",
+        "Misi Rakyat: Lolos dari Cengkeraman Pipa Kongkalikong Pejabat",
+        "Kawal Kas Sawit Bersih untuk Memulihkan Rimba Nusantara"
+    };
 
     // ========== SETTINGS ==========
     private boolean soundEnabled = true;
@@ -298,15 +322,18 @@ public class GameView extends View {
         settingsBtnX = W - settingsBtnSize - 16 * SCALE;
         settingsBtnY = safeTop + 6 * SCALE;
 
-        // Calculate Menu Button coordinates
+        // Calculate Menu Button coordinates for modern arcade layout
+        float menuBirdCenterY = safeTop + playableH * 0.36f;
+        float dashY = menuBirdCenterY + 44 * SCALE;
+        float dashH = 50 * SCALE;
         playBtnW = Math.min(270 * SCALE, W * 0.82f);
-        playBtnH = 56 * SCALE;
+        playBtnH = 52 * SCALE;
         playBtnX = (W - playBtnW) / 2;
-        playBtnY = safeTop + playableH * 0.65f;
+        playBtnY = dashY + dashH + 14 * SCALE;
 
-        float subRowY = playBtnY + playBtnH + 16 * SCALE;
-        float subRowH = 48 * SCALE;
-        float gap = 12 * SCALE;
+        float subRowY = playBtnY + playBtnH + 12 * SCALE;
+        float subRowH = 44 * SCALE;
+        float gap = 10 * SCALE;
 
         // Left button: 🎭 PILIH SKIN & TEMA
         skinBtnW = (playBtnW - gap) / 2;
@@ -484,6 +511,7 @@ public class GameView extends View {
         gameOverAnimProgress = 0;
 
         playHitSound();
+        playDieSound();
         try {
             if (vibrator != null) vibrator.vibrate(hitPipe ? 80 : 50);
         } catch (Exception ignored) {}
@@ -613,6 +641,9 @@ public class GameView extends View {
     }
 
     private void updateAll(float dt) {
+        if (satireQuoteTimer > 0) {
+            satireQuoteTimer -= dt;
+        }
         groundOffset = (groundOffset + worldSpeed * SCALE * dt) % (140 * SCALE);
 
         for (SmokeCloud s : smokeClouds) {
@@ -820,180 +851,247 @@ public class GameView extends View {
     }
 
     // ========================================================
-    //  MODERN ARCADE MENU SCREEN
+    //  MODERN ARCADE MENU SCREEN (Satirical Anti-Corruption Edition)
     // ========================================================
     private void drawModernArcadeMenu(Canvas c) {
         long timeMs = System.currentTimeMillis();
 
-        // 1. TOP CAMPAIGN BADGE
-        float badgeW = Math.min(290 * SCALE, W * 0.88f);
-        float badgeH = 28 * SCALE;
-        float badgeY = safeTop + 2 * SCALE;
-        float badgeX = (W - badgeW) / 2;
+        // 1. TOP SATIRICAL NEWS TICKER (KPK & Forestry Corruption Watch)
+        float tickerW = Math.min(320 * SCALE, W * 0.94f);
+        float tickerH = 26 * SCALE;
+        float tickerY = safeTop + 3 * SCALE;
+        float tickerX = (W - tickerW) / 2;
 
         p.setStyle(Paint.Style.FILL);
-        p.setColor(0x35000000);
-        rf.set(badgeX, badgeY, badgeX + badgeW, badgeY + badgeH);
-        c.drawRoundRect(rf, 14 * SCALE, 14 * SCALE, p);
+        p.setColor(0x77050201);
+        rf.set(tickerX, tickerY, tickerX + tickerW, tickerY + tickerH);
+        c.drawRoundRect(rf, 13 * SCALE, 13 * SCALE, p);
 
         p.setStyle(Paint.Style.STROKE);
-        p.setColor(0x99FF8C00);
+        p.setColor(0x88FF5722);
         p.setStrokeWidth(1.2f * SCALE);
-        c.drawRoundRect(rf, 14 * SCALE, 14 * SCALE, p);
+        c.drawRoundRect(rf, 13 * SCALE, 13 * SCALE, p);
+
+        // Left Tag Badge: 🔴 KORUPSI WATCH
+        float tagW = 86 * SCALE;
+        p.setStyle(Paint.Style.FILL);
+        p.setColor(0xFFD50000);
+        rf.set(tickerX + 2 * SCALE, tickerY + 2 * SCALE, tickerX + tagW, tickerY + tickerH - 2 * SCALE);
+        c.drawRoundRect(rf, 11 * SCALE, 11 * SCALE, p);
 
         tp.setTypeface(tfCondensed);
-        tp.setColor(0xFFFFB74D);
+        tp.setColor(Color.WHITE);
         tp.setTextAlign(Paint.Align.CENTER);
-        tp.setTextSize(11.5f * SCALE);
+        tp.setTextSize(9.5f * SCALE);
         tp.setFakeBoldText(true);
-        c.drawText("🚨 MISI DARURAT: SELAMATKAN RIMBA SAWIT", W / 2, badgeY + 18.5f * SCALE, tp);
+        c.drawText("🔴 KORUPSI WATCH", tickerX + tagW / 2, tickerY + 16.5f * SCALE, tp);
 
-        // 2. 3D GRAND ARCADE TITLE
-        float titleY = safeTop + 62 * SCALE;
+        // Cycling satirical headlines with smooth alpha fade
+        int headlineIdx = (int)((timeMs / 3800) % SATIRE_HEADLINES.length);
+        float cycleT = (timeMs % 3800) / 3800f;
+        float headlineAlpha = 1.0f;
+        if (cycleT < 0.15f) headlineAlpha = cycleT / 0.15f;
+        else if (cycleT > 0.85f) headlineAlpha = (1.0f - cycleT) / 0.15f;
+
+        tp.setColor(Color.argb((int)(255 * headlineAlpha), 255, 224, 130));
+        tp.setTextSize(10.5f * SCALE);
+        tp.setTextAlign(Paint.Align.LEFT);
+        tp.setFakeBoldText(false);
+
+        c.save();
+        c.clipRect(tickerX + tagW + 6 * SCALE, tickerY, tickerX + tickerW - 6 * SCALE, tickerY + tickerH);
+        c.drawText(SATIRE_HEADLINES[headlineIdx], tickerX + tagW + 8 * SCALE, tickerY + 17 * SCALE, tp);
+        c.restore();
+
+        // 2. 3D GRAND ARCADE TITLE & SATIRICAL SUBTITLE
+        float titleY = safeTop + 54 * SCALE;
         draw3DText(c, "FLAPPY SAWIT", W / 2, titleY, 44 * SCALE, tfBlack, 0xFFFFF176, 0xFFFF3D00, 0xFF7F1D1D);
 
-        tp.setTypeface(tfMedium);
+        tp.setTypeface(tfCondensed);
         tp.setColor(0xFFFFCC80);
-        tp.setTextSize(13.5f * SCALE);
-        tp.setFakeBoldText(false);
+        tp.setTextSize(12.5f * SCALE);
+        tp.setTextAlign(Paint.Align.CENTER);
+        tp.setFakeBoldText(true);
         tp.setShadowLayer(4 * SCALE, 0, 2 * SCALE, 0xFF000000);
-        c.drawText("Terbang Menembus Asap & Kobaran Hutan!", W / 2, titleY + 23 * SCALE, tp);
+        c.drawText("Lawan Kongkalikong Mafia HGU & Pipa Pejabat!", W / 2, titleY + 21 * SCALE, tp);
         tp.clearShadowLayer();
 
-        // 3. TROPHY HIGH SCORE PILL
-        float birdCenterY = safeTop + playableH * 0.38f;
-        float trophyW = Math.min(200 * SCALE, W * 0.6f);
-        float trophyH = 30 * SCALE;
-        float trophyX = (W - trophyW) / 2;
-        float trophyY = birdCenterY + (BIRD_H * 0.8f) * SCALE + 20 * SCALE;
+        // 3. MODERN GLASSMORPHISM DASHBOARD (DUAL-COLUMN)
+        float menuBirdCenterY = safeTop + playableH * 0.36f;
+        float dashY = menuBirdCenterY + 44 * SCALE;
+        float cardH = 50 * SCALE;
+        float gap = 10 * SCALE;
+        float cardW = (playBtnW - gap) / 2;
+        float leftX = playBtnX;
+        float rightX = leftX + cardW + gap;
 
+        // [A] LEFT CARD: REKOR OPERASI & SATIRICAL RANK
         p.setStyle(Paint.Style.FILL);
-        p.setColor(0x60000000);
-        rf.set(trophyX, trophyY, trophyX + trophyW, trophyY + trophyH);
-        c.drawRoundRect(rf, 15 * SCALE, 15 * SCALE, p);
+        p.setShader(new LinearGradient(leftX, dashY, leftX, dashY + cardH,
+                new int[]{0x662A1005, 0x66150602}, null, Shader.TileMode.CLAMP));
+        rf.set(leftX, dashY, leftX + cardW, dashY + cardH);
+        c.drawRoundRect(rf, 14 * SCALE, 14 * SCALE, p);
+        p.setShader(null);
 
         p.setStyle(Paint.Style.STROKE);
-        p.setColor(0xCCFFD54F);
-        p.setStrokeWidth(1.4f * SCALE);
-        c.drawRoundRect(rf, 15 * SCALE, 15 * SCALE, p);
-
-        tp.setTypeface(tfCondensed);
-        tp.setColor(0xFFFFE082);
-        tp.setTextSize(13 * SCALE);
-        tp.setFakeBoldText(true);
-        c.drawText(highScore > 0 ? "🏆 REKOR TERTINGGI: " + highScore : "🏆 SKOR TERBAIK: 0", W / 2, trophyY + 20 * SCALE, tp);
-
-        // Coin Balance Pill
-        float coinBalY = trophyY + trophyH + 7 * SCALE;
-        float coinBalW = Math.min(170 * SCALE, W * 0.52f);
-        float coinBalX = (W - coinBalW) / 2;
-        p.setStyle(Paint.Style.FILL);
-        p.setColor(0x75000000);
-        rf.set(coinBalX, coinBalY, coinBalX + coinBalW, coinBalY + 26 * SCALE);
-        c.drawRoundRect(rf, 13 * SCALE, 13 * SCALE, p);
-
-        p.setStyle(Paint.Style.STROKE);
-        p.setColor(0x99FFB300);
+        p.setColor(0x99FFA726);
         p.setStrokeWidth(1.2f * SCALE);
-        c.drawRoundRect(rf, 13 * SCALE, 13 * SCALE, p);
+        c.drawRoundRect(rf, 14 * SCALE, 14 * SCALE, p);
 
         tp.setTypeface(tfCondensed);
         tp.setColor(0xFFFFD54F);
-        tp.setTextSize(12.5f * SCALE);
-        tp.setTextAlign(Paint.Align.CENTER);
-        c.drawText("🪙 KOIN SAWIT: " + sawitCoins, W / 2, coinBalY + 18 * SCALE, tp);
+        tp.setTextSize(9.5f * SCALE);
+        tp.setFakeBoldText(true);
+        c.drawText("🏆 REKOR OPERASI", leftX + cardW / 2, dashY + 15 * SCALE, tp);
 
-        // 4. MAIN ACTION BUTTON ("▶ MULAI TERBANG")
+        tp.setTypeface(tfBlack);
+        tp.setColor(Color.WHITE);
+        tp.setTextSize(18 * SCALE);
+        c.drawText(String.valueOf(highScore), leftX + cardW / 2, dashY + 33 * SCALE, tp);
+
+        String rankTitle;
+        if (highScore == 0) rankTitle = "Warga Terdampak";
+        else if (highScore < 6) rankTitle = "Relawan Asap";
+        else if (highScore < 16) rankTitle = "Aktivis Hutan";
+        else if (highScore < 31) rankTitle = "Penyidik KPK";
+        else rankTitle = "Pahlawan Rimba";
+
+        tp.setTypeface(tfCondensed);
+        tp.setColor(0xFFFFCC80);
+        tp.setTextSize(8.5f * SCALE);
+        tp.setFakeBoldText(false);
+        c.drawText(rankTitle, leftX + cardW / 2, dashY + 44 * SCALE, tp);
+
+        // [B] RIGHT CARD: KAS ANTI-KORUPSI
+        p.setStyle(Paint.Style.FILL);
+        p.setShader(new LinearGradient(rightX, dashY, rightX, dashY + cardH,
+                new int[]{0x662A1005, 0x66150602}, null, Shader.TileMode.CLAMP));
+        rf.set(rightX, dashY, rightX + cardW, dashY + cardH);
+        c.drawRoundRect(rf, 14 * SCALE, 14 * SCALE, p);
+        p.setShader(null);
+
+        p.setStyle(Paint.Style.STROKE);
+        p.setColor(0x99FFD54F);
+        p.setStrokeWidth(1.2f * SCALE);
+        c.drawRoundRect(rf, 14 * SCALE, 14 * SCALE, p);
+
+        tp.setTypeface(tfCondensed);
+        tp.setColor(0xFFFFD54F);
+        tp.setTextSize(9.5f * SCALE);
+        tp.setFakeBoldText(true);
+        c.drawText("🪙 KAS ANTI-KORUPSI", rightX + cardW / 2, dashY + 15 * SCALE, tp);
+
+        tp.setTypeface(tfBlack);
+        tp.setColor(0xFFFFE082);
+        tp.setTextSize(18 * SCALE);
+        c.drawText(sawitCoins + " 🪙", rightX + cardW / 2, dashY + 33 * SCALE, tp);
+
+        tp.setTypeface(tfCondensed);
+        tp.setColor(0xFF81C784); // Clean green tag
+        tp.setTextSize(8.5f * SCALE);
+        tp.setFakeBoldText(false);
+        c.drawText("Dana Sitaan Bersih", rightX + cardW / 2, dashY + 44 * SCALE, tp);
+
+        // 4. MAIN ACTION BUTTON ("▶ SERGAP KEBUN (MULAI)")
         float pulse = 0.90f + (float)Math.sin(timeMs * 0.005f) * 0.10f;
 
         sp.setStyle(Paint.Style.FILL);
         sp.setColor(Color.argb((int)(60 * pulse), 255, 80, 0));
-        rf.set(playBtnX - 6 * SCALE, playBtnY - 6 * SCALE, playBtnX + playBtnW + 6 * SCALE, playBtnY + playBtnH + 6 * SCALE);
-        c.drawRoundRect(rf, 32 * SCALE, 32 * SCALE, sp);
+        rf.set(playBtnX - 5 * SCALE, playBtnY - 5 * SCALE, playBtnX + playBtnW + 5 * SCALE, playBtnY + playBtnH + 5 * SCALE);
+        c.drawRoundRect(rf, 28 * SCALE, 28 * SCALE, sp);
 
         p.setStyle(Paint.Style.FILL);
-        p.setColor(0xFF7F1D1D);
-        rf.set(playBtnX, playBtnY + 5 * SCALE, playBtnX + playBtnW, playBtnY + playBtnH + 5 * SCALE);
-        c.drawRoundRect(rf, 28 * SCALE, 28 * SCALE, p);
+        p.setColor(0xFF6B0E0E);
+        rf.set(playBtnX, playBtnY + 4 * SCALE, playBtnX + playBtnW, playBtnY + playBtnH + 4 * SCALE);
+        c.drawRoundRect(rf, 26 * SCALE, 26 * SCALE, p);
 
         p.setShader(new LinearGradient(playBtnX, playBtnY, playBtnX, playBtnY + playBtnH,
                 new int[]{0xFFFF9100, 0xFFFF3D00, 0xFFD50000}, null, Shader.TileMode.CLAMP));
         rf.set(playBtnX, playBtnY, playBtnX + playBtnW, playBtnY + playBtnH);
-        c.drawRoundRect(rf, 28 * SCALE, 28 * SCALE, p);
+        c.drawRoundRect(rf, 26 * SCALE, 26 * SCALE, p);
         p.setShader(null);
 
+        // Gloss highlight line on button
         p.setStyle(Paint.Style.STROKE);
         p.setColor(0x88FFFFFF);
-        p.setStrokeWidth(1.8f * SCALE);
-        rf.set(playBtnX + 16 * SCALE, playBtnY + 3 * SCALE, playBtnX + playBtnW - 16 * SCALE, playBtnY + 12 * SCALE);
-        c.drawRoundRect(rf, 6 * SCALE, 6 * SCALE, p);
+        p.setStrokeWidth(1.6f * SCALE);
+        rf.set(playBtnX + 16 * SCALE, playBtnY + 3 * SCALE, playBtnX + playBtnW - 16 * SCALE, playBtnY + 10 * SCALE);
+        c.drawRoundRect(rf, 5 * SCALE, 5 * SCALE, p);
 
         tp.setTypeface(tfBlack);
         tp.setColor(Color.WHITE);
-        tp.setTextSize(21 * SCALE);
+        tp.setTextSize(19 * SCALE);
         tp.setFakeBoldText(true);
-        tp.setShadowLayer(5 * SCALE, 0, 3 * SCALE, 0xFF000000);
-        c.drawText("▶ MULAI TERBANG", W / 2, playBtnY + playBtnH * 0.67f, tp);
+        tp.setTextAlign(Paint.Align.CENTER);
+        tp.setShadowLayer(4 * SCALE, 0, 2 * SCALE, 0xFF000000);
+        c.drawText("▶ SERGAP KEBUN (MULAI)", W / 2, playBtnY + 28 * SCALE, tp);
         tp.clearShadowLayer();
 
-        // 5. SECONDARY CONTROL ROW ([ 🎭 PILIH SKIN ] and [ ⚙ PENGATURAN ])
+        tp.setTypeface(tfCondensed);
+        tp.setColor(0xFFFFE0B2);
+        tp.setTextSize(9.5f * SCALE);
+        tp.setFakeBoldText(false);
+        c.drawText("Sita Aset & Pulihkan Rimba Rakyat", W / 2, playBtnY + 42 * SCALE, tp);
+
+        // 5. SECONDARY CONTROL ROW ([ 🎭 WARDROBE & SKIN ] and [ ⚙ PENGATURAN ])
         // [A] Skin Selection Button
         p.setStyle(Paint.Style.FILL);
         p.setColor(0xFF1E0E08);
         rf.set(skinBtnX, skinBtnY + 3 * SCALE, skinBtnX + skinBtnW, skinBtnY + skinBtnH + 3 * SCALE);
-        c.drawRoundRect(rf, 24 * SCALE, 24 * SCALE, p);
+        c.drawRoundRect(rf, 22 * SCALE, 22 * SCALE, p);
 
         p.setShader(new LinearGradient(skinBtnX, skinBtnY, skinBtnX, skinBtnY + skinBtnH,
                 new int[]{0xFF4A1F3D, 0xFF280B20}, null, Shader.TileMode.CLAMP));
         rf.set(skinBtnX, skinBtnY, skinBtnX + skinBtnW, skinBtnY + skinBtnH);
-        c.drawRoundRect(rf, 24 * SCALE, 24 * SCALE, p);
+        c.drawRoundRect(rf, 22 * SCALE, 22 * SCALE, p);
         p.setShader(null);
 
         p.setStyle(Paint.Style.STROKE);
         p.setColor(0xFFE040FB);
         p.setStrokeWidth(1.5f * SCALE);
-        c.drawRoundRect(rf, 24 * SCALE, 24 * SCALE, p);
+        c.drawRoundRect(rf, 22 * SCALE, 22 * SCALE, p);
 
         tp.setTypeface(tfCondensed);
         tp.setColor(0xFFF8BBD0);
-        tp.setTextSize(14.5f * SCALE);
+        tp.setTextSize(13.5f * SCALE);
         tp.setFakeBoldText(true);
         tp.setShadowLayer(3 * SCALE, 0, 2 * SCALE, 0xFF000000);
-        c.drawText("🎭 PILIH SKIN", skinBtnX + skinBtnW / 2, skinBtnY + skinBtnH * 0.66f, tp);
+        c.drawText("🎭 WARDROBE", skinBtnX + skinBtnW / 2, skinBtnY + skinBtnH * 0.64f, tp);
         tp.clearShadowLayer();
 
         // [B] Settings Button
         p.setStyle(Paint.Style.FILL);
         p.setColor(0xFF1E0E08);
         rf.set(setBtnX, setBtnY + 3 * SCALE, setBtnX + setBtnW, setBtnY + setBtnH + 3 * SCALE);
-        c.drawRoundRect(rf, 24 * SCALE, 24 * SCALE, p);
+        c.drawRoundRect(rf, 22 * SCALE, 22 * SCALE, p);
 
         p.setShader(new LinearGradient(setBtnX, setBtnY, setBtnX, setBtnY + setBtnH,
                 new int[]{0xFF422114, 0xFF281109}, null, Shader.TileMode.CLAMP));
         rf.set(setBtnX, setBtnY, setBtnX + setBtnW, setBtnY + setBtnH);
-        c.drawRoundRect(rf, 24 * SCALE, 24 * SCALE, p);
+        c.drawRoundRect(rf, 22 * SCALE, 22 * SCALE, p);
         p.setShader(null);
 
         p.setStyle(Paint.Style.STROKE);
         p.setColor(0x99FFA726);
         p.setStrokeWidth(1.5f * SCALE);
-        c.drawRoundRect(rf, 24 * SCALE, 24 * SCALE, p);
+        c.drawRoundRect(rf, 22 * SCALE, 22 * SCALE, p);
 
         tp.setTypeface(tfCondensed);
         tp.setColor(0xFFFFE0B2);
-        tp.setTextSize(14.5f * SCALE);
+        tp.setTextSize(13.5f * SCALE);
         tp.setFakeBoldText(true);
         tp.setShadowLayer(3 * SCALE, 0, 2 * SCALE, 0xFF000000);
-        c.drawText("⚙ PENGATURAN", setBtnX + setBtnW / 2, setBtnY + setBtnH * 0.66f, tp);
+        c.drawText("⚙ PENGATURAN", setBtnX + setBtnW / 2, setBtnY + skinBtnH * 0.64f, tp);
         tp.clearShadowLayer();
     }
 
-    // ========== HERO CHARACTER STAGE IN MENU ==========
+    // ========== HERO CHARACTER STAGE IN MENU (Satirical Speech Bubble) ==========
     private void drawIdleBirdWithStage(Canvas c) {
         long timeMs = System.currentTimeMillis();
         float birdCenterX = W / 2;
-        float birdCenterY = safeTop + playableH * 0.38f;
+        float birdCenterY = safeTop + playableH * 0.36f;
 
+        // Glowing Holographic Pedestal
         p.setStyle(Paint.Style.FILL);
         p.setShader(new RadialGradient(birdCenterX, birdCenterY, 65 * SCALE,
                 new int[]{0x44FF6D00, 0x1AEE3900, 0x00000000}, null, Shader.TileMode.CLAMP));
@@ -1009,9 +1107,68 @@ public class GameView extends View {
         }
 
         birdX = birdCenterX - (BIRD_W * SCALE) / 2;
-        birdY = birdCenterY - (BIRD_H * SCALE) / 2 + (float)Math.sin(timeMs * 0.0035f) * (12 * SCALE);
+        birdY = birdCenterY - (BIRD_H * SCALE) / 2 + (float)Math.sin(timeMs * 0.0035f) * (10 * SCALE);
         birdRotation = (float)Math.sin(timeMs * 0.0035f) * 6;
         drawBirdWithSkin(c, birdX, birdY, birdRotation, wingAngle, isBlinking, currentSkin);
+
+        // Satirical Speech Bubble or Tapping Hint
+        if (satireQuoteTimer > 0) {
+            drawSpeechBubble(c, birdCenterX, birdCenterY - 14 * SCALE, currentSatireQuote);
+        } else {
+            float hintPulse = 0.6f + 0.4f * (float)Math.sin(timeMs * 0.004f);
+            tp.setTypeface(tfCondensed);
+            tp.setColor(Color.argb((int)(200 * hintPulse), 255, 224, 130));
+            tp.setTextSize(9.5f * SCALE);
+            tp.setTextAlign(Paint.Align.CENTER);
+            tp.setFakeBoldText(true);
+            c.drawText("💬 Ketuk Burung untuk Bersuara!", birdCenterX, birdCenterY - 36 * SCALE, tp);
+        }
+    }
+
+    private void drawSpeechBubble(Canvas c, float bx, float by, String text) {
+        float bubbleW = Math.min(270 * SCALE, W * 0.88f);
+        float bubbleH = 32 * SCALE;
+        float bubbleX = bx - bubbleW / 2;
+        float bubbleY = by - 48 * SCALE;
+
+        // Shadow
+        p.setStyle(Paint.Style.FILL);
+        p.setColor(0x40000000);
+        rf.set(bubbleX + 2 * SCALE, bubbleY + 2 * SCALE, bubbleX + bubbleW + 2 * SCALE, bubbleY + bubbleH + 2 * SCALE);
+        c.drawRoundRect(rf, 12 * SCALE, 12 * SCALE, p);
+
+        // Bubble Body
+        p.setColor(0xFFFFFDE7);
+        rf.set(bubbleX, bubbleY, bubbleX + bubbleW, bubbleY + bubbleH);
+        c.drawRoundRect(rf, 12 * SCALE, 12 * SCALE, p);
+
+        // Border
+        p.setStyle(Paint.Style.STROKE);
+        p.setColor(0xFFFF6D00);
+        p.setStrokeWidth(1.5f * SCALE);
+        c.drawRoundRect(rf, 12 * SCALE, 12 * SCALE, p);
+
+        // Triangle pointer pointing to bird head
+        Path pointer = new Path();
+        pointer.moveTo(bx - 6 * SCALE, bubbleY + bubbleH - 0.5f);
+        pointer.lineTo(bx + 6 * SCALE, bubbleY + bubbleH - 0.5f);
+        pointer.lineTo(bx, bubbleY + bubbleH + 7 * SCALE);
+        pointer.close();
+
+        p.setStyle(Paint.Style.FILL);
+        p.setColor(0xFFFFFDE7);
+        c.drawPath(pointer, p);
+        p.setStyle(Paint.Style.STROKE);
+        p.setColor(0xFFFF6D00);
+        c.drawPath(pointer, p);
+
+        // Text
+        tp.setTypeface(tfCondensed);
+        tp.setColor(0xFFBF360C);
+        tp.setTextSize(11.5f * SCALE);
+        tp.setTextAlign(Paint.Align.CENTER);
+        tp.setFakeBoldText(true);
+        c.drawText("\"" + text + "\"", bx, bubbleY + 20 * SCALE, tp);
     }
 
     // ========================================================
@@ -2810,10 +2967,23 @@ public class GameView extends View {
 
         tp.setTypeface(tfCondensed);
         tp.setColor(0xFFFFCC80);
-        tp.setTextSize(14 * SCALE);
+        tp.setTextSize(13 * SCALE);
         tp.setTextAlign(Paint.Align.CENTER);
         tp.setFakeBoldText(true);
-        c.drawText("Burungmu tertelan pekatnya asap kabut!", W / 2, cardY + 72 * SCALE, tp);
+
+        String failSubtitle;
+        if (score == 0) {
+            failSubtitle = "Kena prank pipa siluman di perbatasan HGU!";
+        } else if (score < 6) {
+            failSubtitle = "Terjebak asap pekat, anggaran reboisasi nihil!";
+        } else if (score < 16) {
+            failSubtitle = "Menabrak tiang mafia sawit tanpa izin lingkungan!";
+        } else if (score < 31) {
+            failSubtitle = "Lolos beberapa pos, tersenggol pipa pejabat!";
+        } else {
+            failSubtitle = "Luar biasa! Berhasil membongkar kebun ilegal!";
+        }
+        c.drawText(failSubtitle, W / 2, cardY + 72 * SCALE, tp);
 
         float scoreBoxW = cardW - 40 * SCALE;
         float scoreBoxH = 92 * SCALE;
@@ -2833,8 +3003,8 @@ public class GameView extends View {
         tp.setTypeface(tfCondensed);
         tp.setColor(0xFFB0BEC5);
         tp.setTextSize(11.5f * SCALE);
-        c.drawText("POHON", scoreBoxX + scoreBoxW * 0.18f, scoreBoxY + 23 * SCALE, tp);
-        c.drawText("KOIN", scoreBoxX + scoreBoxW * 0.50f, scoreBoxY + 23 * SCALE, tp);
+        c.drawText("RINTANGAN", scoreBoxX + scoreBoxW * 0.18f, scoreBoxY + 23 * SCALE, tp);
+        c.drawText("DISITA", scoreBoxX + scoreBoxW * 0.50f, scoreBoxY + 23 * SCALE, tp);
         c.drawText("REKOR", scoreBoxX + scoreBoxW * 0.82f, scoreBoxY + 23 * SCALE, tp);
 
         tp.setTypeface(tfBlack);
@@ -2852,7 +3022,7 @@ public class GameView extends View {
         tp.setTypeface(tfCondensed);
         tp.setColor(0xFFFFE082);
         tp.setTextSize(11 * SCALE);
-        c.drawText("TOTAL KOIN SAWIT: " + sawitCoins + " 🪙", scoreBoxX + scoreBoxW / 2, scoreBoxY + 79 * SCALE, tp);
+        c.drawText("KAS ANTI-KORUPSI: " + sawitCoins + " 🪙", scoreBoxX + scoreBoxW / 2, scoreBoxY + 79 * SCALE, tp);
 
         // --- BUTTON 1: COBA LAGI ---
         goRetryBtnW = cardW - 40 * SCALE;
@@ -3130,13 +3300,15 @@ public class GameView extends View {
                 return true;
             }
 
-            // [4] Tap directly on Bird (Interactive fun)
+            // [4] Tap directly on Bird (Interactive satire speech bubble)
             float birdCenterX = W / 2;
-            float birdCenterY = safeTop + playableH * 0.38f;
+            float birdCenterY = safeTop + playableH * 0.36f;
             float dist = (float)Math.hypot(tx - birdCenterX, ty - birdCenterY);
-            if (dist < 55 * SCALE) {
+            if (dist < 60 * SCALE) {
                 playFlapSound();
                 spawnFlapSparks(birdCenterX - 10 * SCALE, birdCenterY, currentSkin);
+                currentSatireQuote = SATIRE_QUOTES[rng.nextInt(SATIRE_QUOTES.length)];
+                satireQuoteTimer = 2.8f;
                 return true;
             }
 
@@ -3383,243 +3555,73 @@ public class GameView extends View {
     }
 
     // ========================================================
-    //  MODERN PROCEDURAL AUDIO ENGINE (Zero Latency Static AudioTrack)
+    //  ARCADE AUDIO ENGINE (Native SoundPool 44.1kHz Studio SFX)
     // ========================================================
-    private static final int AUDIO_SAMPLE_RATE = 22050;
-    private AudioTrack[] flapTracks = new AudioTrack[2];
-    private int flapTrackIdx = 0;
-    private AudioTrack scoreTrack;
-    private AudioTrack hitTrack;
-    private AudioTrack clickTrack;
-    private AudioTrack successTrack;
+    private SoundPool soundPool;
+    private int soundFlap = 0;
+    private int soundPoint = 0;
+    private int soundHit = 0;
+    private int soundDie = 0;
+    private int soundClick = 0;
+    private int soundSuccess = 0;
 
     private void initModernAudio() {
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    // 1. Dual-Voice Modern Flap (Aerodynamic Flutter + Warm Pop)
-                    short[] flapBuf = generateFlapBuffer(AUDIO_SAMPLE_RATE);
-                    flapTracks[0] = createStaticTrack(flapBuf, AUDIO_SAMPLE_RATE);
-                    flapTracks[1] = createStaticTrack(flapBuf, AUDIO_SAMPLE_RATE);
-
-                    // 2. Modern Score Crystal Bell (Harmonic Duo-Tone Chime)
-                    short[] scoreBuf = generateScoreBuffer(AUDIO_SAMPLE_RATE);
-                    scoreTrack = createStaticTrack(scoreBuf, AUDIO_SAMPLE_RATE);
-
-                    // 3. Modern Cinematic Impact (Sub-Bass Thud + Crunch Debris)
-                    short[] hitBuf = generateHitBuffer(AUDIO_SAMPLE_RATE);
-                    hitTrack = createStaticTrack(hitBuf, AUDIO_SAMPLE_RATE);
-
-                    // 4. Modern UI Tap / Bubble Pop
-                    short[] clickBuf = generateClickBuffer(AUDIO_SAMPLE_RATE);
-                    clickTrack = createStaticTrack(clickBuf, AUDIO_SAMPLE_RATE);
-
-                    // 5. Modern Success / Celebration Arpeggio Chime
-                    short[] successBuf = generateSuccessBuffer(AUDIO_SAMPLE_RATE);
-                    successTrack = createStaticTrack(successBuf, AUDIO_SAMPLE_RATE);
-                } catch (Exception ignored) {}
-            }
-        }).start();
+        try {
+            AudioAttributes attrs = new AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_GAME)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build();
+            soundPool = new SoundPool.Builder()
+                    .setMaxStreams(8)
+                    .setAudioAttributes(attrs)
+                    .build();
+            Context ctx = getContext();
+            soundFlap = soundPool.load(ctx, R.raw.sfx_flap, 1);
+            soundPoint = soundPool.load(ctx, R.raw.sfx_point, 1);
+            soundHit = soundPool.load(ctx, R.raw.sfx_hit, 1);
+            soundDie = soundPool.load(ctx, R.raw.sfx_die, 1);
+            soundClick = soundPool.load(ctx, R.raw.sfx_click, 1);
+            soundSuccess = soundPool.load(ctx, R.raw.sfx_success, 1);
+        } catch (Exception ignored) {}
     }
 
-    private AudioTrack createStaticTrack(short[] buffer, int sampleRate) {
+    private void playSfx(int soundId, float volume, float rate) {
+        if (!soundEnabled || soundPool == null || soundId == 0) return;
         try {
-            int numBytes = buffer.length * 2;
-            AudioTrack track = new AudioTrack(
-                    AudioManager.STREAM_MUSIC,
-                    sampleRate,
-                    AudioFormat.CHANNEL_OUT_MONO,
-                    AudioFormat.ENCODING_PCM_16BIT,
-                    numBytes,
-                    AudioTrack.MODE_STATIC
-            );
-            track.write(buffer, 0, buffer.length);
-            return track;
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
-    private void playSoundTrack(AudioTrack track) {
-        if (!soundEnabled || track == null) return;
-        try {
-            track.stop();
-            track.reloadStaticData();
-            track.play();
+            soundPool.play(soundId, volume, volume, 1, 0, rate);
         } catch (Exception ignored) {}
     }
 
     public void playFlapSound() {
-        if (!soundEnabled) return;
-        try {
-            AudioTrack t = flapTracks[flapTrackIdx];
-            flapTrackIdx = (flapTrackIdx + 1) % flapTracks.length;
-            if (t != null) {
-                t.stop();
-                t.reloadStaticData();
-                t.play();
-            }
-        } catch (Exception ignored) {}
+        playSfx(soundFlap, 0.95f, 1.0f);
     }
 
     public void playScoreSound() {
-        playSoundTrack(scoreTrack);
+        playSfx(soundPoint, 1.0f, 1.0f);
     }
 
     public void playHitSound() {
-        playSoundTrack(hitTrack);
+        playSfx(soundHit, 1.0f, 1.0f);
+    }
+
+    public void playDieSound() {
+        playSfx(soundDie, 0.95f, 1.0f);
     }
 
     public void playClickSound() {
-        playSoundTrack(clickTrack);
+        playSfx(soundClick, 0.85f, 1.0f);
     }
 
     public void playSuccessSound() {
-        playSoundTrack(successTrack);
-    }
-
-    private void playTone(final int startFreq, final int endFreq, final int durationMs) {
-        if (!soundEnabled) return;
-        if (startFreq < endFreq) {
-            playScoreSound();
-        } else if (durationMs > 120) {
-            playHitSound();
-        } else {
-            playClickSound();
-        }
-    }
-
-    private short[] generateFlapBuffer(int sampleRate) {
-        int numSamples = (int)(0.085f * sampleRate);
-        short[] buf = new short[numSamples];
-        double phase = 0;
-        Random r = new Random(42);
-
-        for (int i = 0; i < numSamples; i++) {
-            float t = (float) i / numSamples;
-            float pitch = 170.0f + 190.0f * (float)Math.sin(t * Math.PI);
-            phase += 2.0 * Math.PI * pitch / sampleRate;
-
-            float tone = (float)Math.sin(phase) + 0.35f * (float)Math.sin(phase * 2.0);
-            float noise = (r.nextFloat() * 2.0f - 1.0f) * (1.0f - t);
-
-            float mix = tone * 0.72f + noise * 0.28f;
-            float env = (t < 0.07f) ? (t / 0.07f) : (float)Math.pow(1.0f - (t - 0.07f) / 0.93f, 2.2);
-
-            int val = (int)(mix * env * 24000);
-            if (val > 32767) val = 32767;
-            else if (val < -32767) val = -32767;
-            buf[i] = (short) val;
-        }
-        return buf;
-    }
-
-    private short[] generateScoreBuffer(int sampleRate) {
-        int numSamples = (int)(0.22f * sampleRate);
-        short[] buf = new short[numSamples];
-        double p1 = 0, p2 = 0, p3 = 0;
-
-        for (int i = 0; i < numSamples; i++) {
-            float t = (float) i / numSamples;
-            p1 += 2.0 * Math.PI * 1046.5 / sampleRate;
-            p2 += 2.0 * Math.PI * 1318.5 / sampleRate;
-            p3 += 2.0 * Math.PI * 2093.0 / sampleRate;
-
-            float bell = 0.50f * (float)Math.sin(p1)
-                       + 0.35f * (float)Math.sin(p2)
-                       + 0.15f * (float)Math.sin(p3);
-
-            float env = (t < 0.012f) ? (t / 0.012f) : (float)Math.exp(-t * 13.0f);
-
-            int val = (int)(bell * env * 22000);
-            if (val > 32767) val = 32767;
-            else if (val < -32767) val = -32767;
-            buf[i] = (short) val;
-        }
-        return buf;
-    }
-
-    private short[] generateHitBuffer(int sampleRate) {
-        int numSamples = (int)(0.24f * sampleRate);
-        short[] buf = new short[numSamples];
-        double phase = 0;
-        Random r = new Random(101);
-
-        for (int i = 0; i < numSamples; i++) {
-            float t = (float) i / numSamples;
-            float pitch = 150.0f * (float)Math.exp(-t * 16.0f) + 38.0f;
-            phase += 2.0 * Math.PI * pitch / sampleRate;
-
-            float bass = (float)Math.sin(phase);
-            float noise = (r.nextFloat() * 2.0f - 1.0f) * (float)Math.exp(-t * 24.0f);
-
-            float mix = (float)Math.tanh((bass * 0.75f + noise * 0.40f) * 1.5f);
-            float env = (t < 0.01f) ? (t / 0.01f) : (float)Math.pow(1.0f - t, 2.0);
-
-            int val = (int)(mix * env * 28000);
-            if (val > 32767) val = 32767;
-            else if (val < -32767) val = -32767;
-            buf[i] = (short) val;
-        }
-        return buf;
-    }
-
-    private short[] generateClickBuffer(int sampleRate) {
-        int numSamples = (int)(0.038f * sampleRate);
-        short[] buf = new short[numSamples];
-        double phase = 0;
-
-        for (int i = 0; i < numSamples; i++) {
-            float t = (float) i / numSamples;
-            float pitch = 680.0f - 180.0f * t;
-            phase += 2.0 * Math.PI * pitch / sampleRate;
-
-            float tone = 0.85f * (float)Math.sin(phase) + 0.15f * (float)Math.sin(phase * 2.0);
-            float env = (t < 0.08f) ? (t / 0.08f) : (float)Math.exp(-t * 42.0f);
-
-            int val = (int)(tone * env * 20000);
-            if (val > 32767) val = 32767;
-            else if (val < -32767) val = -32767;
-            buf[i] = (short) val;
-        }
-        return buf;
-    }
-
-    private short[] generateSuccessBuffer(int sampleRate) {
-        int numSamples = (int)(0.30f * sampleRate);
-        short[] buf = new short[numSamples];
-        double phase = 0;
-
-        for (int i = 0; i < numSamples; i++) {
-            float t = (float) i / numSamples;
-            float freq = (t < 0.33f) ? 523.25f : ((t < 0.66f) ? 659.25f : 783.99f);
-            phase += 2.0 * Math.PI * freq / sampleRate;
-
-            float tone = 0.70f * (float)Math.sin(phase) + 0.30f * (float)Math.sin(phase * 2.0);
-            float subT = (t % 0.33f) / 0.33f;
-            float env = (float)Math.exp(-subT * 5.5f);
-
-            int val = (int)(tone * env * 21000);
-            if (val > 32767) val = 32767;
-            else if (val < -32767) val = -32767;
-            buf[i] = (short) val;
-        }
-        return buf;
+        playSfx(soundSuccess, 1.0f, 1.0f);
     }
 
     private void releaseModernAudio() {
         try {
-            for (int i = 0; i < flapTracks.length; i++) {
-                if (flapTracks[i] != null) {
-                    flapTracks[i].release();
-                    flapTracks[i] = null;
-                }
+            if (soundPool != null) {
+                soundPool.release();
+                soundPool = null;
             }
-            if (scoreTrack != null) { scoreTrack.release(); scoreTrack = null; }
-            if (hitTrack != null) { hitTrack.release(); hitTrack = null; }
-            if (clickTrack != null) { clickTrack.release(); clickTrack = null; }
-            if (successTrack != null) { successTrack.release(); successTrack = null; }
         } catch (Exception ignored) {}
     }
 }
