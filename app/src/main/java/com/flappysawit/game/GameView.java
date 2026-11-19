@@ -29,11 +29,21 @@ public class GameView extends View {
     private static final int STATE_GAMEOVER = 2;
     private static final int STATE_SETTINGS = 3;
     private static final int STATE_SKINS = 4;
+    private static final int STATE_DYING = 5;
 
     private int gameState = STATE_MENU;
     private int prevState = STATE_MENU;
     private boolean isPaused = false;
     private long lastTimeNs = 0;
+
+    // Death & Impact Animation variables
+    private float birdVx = 0;
+    private float deathTimer = 0;
+    private float screenShakeTimer = 0;
+    private float screenShakeMagnitude = 0;
+    private float impactFlashTimer = 0;
+    private float gameOverAnimProgress = 0;
+    private boolean birdHitGround = false;
 
     // ========== SETTINGS ==========
     private boolean soundEnabled = true;
@@ -447,29 +457,62 @@ public class GameView extends View {
     private void resetBird() {
         birdX = W * 0.22f;
         birdY = safeTop + playableH * 0.38f;
+        birdVx = 0;
         birdVy = 0;
         birdRotation = 0;
         wingAngle = 0;
+        deathTimer = 0;
+        screenShakeTimer = 0;
+        impactFlashTimer = 0;
+        gameOverAnimProgress = 0;
+        birdHitGround = false;
     }
 
     private void flap() {
+        if (gameState != STATE_PLAYING) return;
         birdVy = -410 * SCALE;
         wingAngle = -(float)Math.PI / 3;
         playFlapSound();
         spawnFlapSparks(birdX, birdY + (BIRD_H * 0.4f) * SCALE, currentSkin);
     }
 
-    private void triggerGameOver() {
-        gameState = STATE_GAMEOVER;
+    private void startDying(boolean hitPipe) {
+        if (gameState == STATE_DYING || gameState == STATE_GAMEOVER) return;
+        gameState = STATE_DYING;
+        deathTimer = 0;
+        birdHitGround = !hitPipe;
+        gameOverAnimProgress = 0;
+
         playHitSound();
+        try {
+            if (vibrator != null) vibrator.vibrate(hitPipe ? 80 : 50);
+        } catch (Exception ignored) {}
+
+        screenShakeTimer = 0.35f;
+        screenShakeMagnitude = 10 * SCALE;
+        impactFlashTimer = 0.22f;
+
         if (score > highScore) {
             highScore = score;
             prefs.edit().putInt("high_score", highScore).apply();
         }
-        spawnExplosion(birdX + (BIRD_W * SCALE) / 2, birdY + (BIRD_H * SCALE) / 2);
-        try {
-            if (vibrator != null) vibrator.vibrate(90);
-        } catch (Exception ignored) {}
+
+        float bx = birdX + (BIRD_W * SCALE) / 2;
+        float by = birdY + (BIRD_H * SCALE) / 2;
+        spawnFeathersAndSparks(bx, by, currentSkin);
+
+        if (hitPipe) {
+            // Upward pop & horizontal knockback away from obstacle
+            birdVy = -250 * SCALE;
+            birdVx = -90 * SCALE;
+            birdRotation = -35;
+        } else {
+            // Direct ground crash
+            birdVy = -120 * SCALE;
+            birdVx = 0;
+            birdRotation = 85;
+            spawnGroundDust(bx, H - groundH);
+        }
     }
 
     // ========================================================
@@ -501,6 +544,15 @@ public class GameView extends View {
 
         c.drawColor(0xFF080100);
 
+        c.save();
+        if (screenShakeTimer > 0) {
+            screenShakeTimer -= dt;
+            float factor = screenShakeTimer / 0.35f;
+            float shakeX = (rng.nextFloat() - 0.5f) * 2 * screenShakeMagnitude * factor;
+            float shakeY = (rng.nextFloat() - 0.5f) * 2 * screenShakeMagnitude * factor;
+            c.translate(shakeX, shakeY);
+        }
+
         // Rich Multi-Layer Atmosphere (Zero Empty Space)
         drawSkyAndSun(c);
         if (graphicsLevel >= 1) drawSmokeClouds(c);
@@ -519,11 +571,15 @@ public class GameView extends View {
             drawBirdWithSkin(c, birdX, birdY, birdRotation, wingAngle, isBlinking, currentSkin);
             drawScoreHUD(c);
             drawSettingsGearBtn(c);
+        } else if (gameState == STATE_DYING) {
+            drawBirdWithSkin(c, birdX, birdY, birdRotation, wingAngle, false, currentSkin);
+            drawScoreHUD(c);
         } else if (gameState == STATE_MENU) {
             drawIdleBirdWithStage(c);
             drawModernArcadeMenu(c);
         } else if (gameState == STATE_GAMEOVER) {
-            drawBirdWithSkin(c, birdX, birdY, birdRotation, wingAngle, isBlinking, currentSkin);
+            drawBirdWithSkin(c, birdX, birdY, birdRotation, wingAngle, false, currentSkin);
+            drawDizzyStars(c, birdX + (BIRD_W * SCALE) / 2, birdY);
             drawGameOverScreen(c);
         } else if (gameState == STATE_SETTINGS) {
             if (prevState == STATE_PLAYING) {
@@ -534,7 +590,17 @@ public class GameView extends View {
             drawSkinSelectionScreen(c);
         }
 
-        if (graphicsLevel >= 1 && gameState == STATE_PLAYING) {
+        c.restore();
+
+        if (impactFlashTimer > 0) {
+            impactFlashTimer -= dt;
+            float alpha = impactFlashTimer / 0.22f;
+            p.setStyle(Paint.Style.FILL);
+            p.setColor(Color.argb((int)(80 * alpha), 255, 30, 0));
+            c.drawRect(0, 0, W, H, p);
+        }
+
+        if (graphicsLevel >= 1 && (gameState == STATE_PLAYING || gameState == STATE_DYING)) {
             tp.setTypeface(tfCondensed);
             tp.setColor(0x88FFFFFF);
             tp.setTextSize(9 * SCALE);
@@ -580,6 +646,50 @@ public class GameView extends View {
             pr.y += pr.vy * dt;
         }
 
+        if (gameState == STATE_DYING) {
+            // Realistic falling, nosedive, and impact tumble physics
+            birdVy += 1750 * SCALE * dt;
+            birdY += birdVy * dt;
+            birdX += birdVx * dt;
+            birdVx *= (float)Math.pow(0.10, dt);
+
+            if (birdRotation < 90) {
+                birdRotation += 420 * dt;
+                if (birdRotation > 90) birdRotation = 90;
+            }
+            wingAngle += 24 * dt;
+
+            float groundY = H - groundH;
+            float bh = BIRD_H * SCALE;
+            if (birdY + bh >= groundY) {
+                birdY = groundY - bh;
+                if (!birdHitGround) {
+                    birdHitGround = true;
+                    playHitSound();
+                    screenShakeTimer = 0.20f;
+                    screenShakeMagnitude = 6 * SCALE;
+                    spawnGroundDust(birdX + (BIRD_W * SCALE) / 2, groundY);
+                    try {
+                        if (vibrator != null) vibrator.vibrate(50);
+                    } catch (Exception ignored) {}
+                    birdVy = -110 * SCALE; // ground thud bounce
+                } else {
+                    birdVy = 0;
+                    birdVx = 0;
+                    birdRotation = 85;
+                }
+            }
+
+            if (birdHitGround) {
+                deathTimer += dt;
+                if (deathTimer >= 0.45f) {
+                    gameState = STATE_GAMEOVER;
+                    gameOverAnimProgress = 0;
+                }
+            }
+            return;
+        }
+
         if (gameState != STATE_PLAYING) return;
 
         // Bird Physics
@@ -601,7 +711,7 @@ public class GameView extends View {
         float bh = BIRD_H * SCALE;
         if (birdY + bh >= groundY) {
             birdY = groundY - bh;
-            triggerGameOver();
+            startDying(false);
             return;
         }
         if (birdY < 0) {
@@ -656,7 +766,7 @@ public class GameView extends View {
             }
             if (birdR > pp.x && birdL < pp.x + pw) {
                 if (birdT < pp.topH || birdB > pp.topH + pp.gap) {
-                    triggerGameOver();
+                    startDying(true);
                     return;
                 }
             }
@@ -1207,30 +1317,31 @@ public class GameView extends View {
     // ========================================================
     private void drawBirdWithSkin(Canvas c, float x, float y, float rot, float wAngle, boolean blink, int skinId) {
         float bw = BIRD_W * SCALE, bh = BIRD_H * SCALE, hw = bw / 2, hh = bh / 2;
+        boolean isDead = (gameState == STATE_DYING || gameState == STATE_GAMEOVER);
         c.save();
         c.translate(x + hw, y + hh);
         c.rotate(rot);
 
         switch (skinId) {
             case 1:
-                drawBirdDamkar(c, hw, hh, wAngle, blink);
+                drawBirdDamkar(c, hw, hh, wAngle, blink, isDead);
                 break;
             case 2:
-                drawBirdPhoenix(c, hw, hh, wAngle, blink);
+                drawBirdPhoenix(c, hw, hh, wAngle, blink, isDead);
                 break;
             case 3:
-                drawBirdMecha(c, hw, hh, wAngle);
+                drawBirdMecha(c, hw, hh, wAngle, isDead);
                 break;
             case 0:
             default:
-                drawBirdGaruda(c, hw, hh, wAngle, blink);
+                drawBirdGaruda(c, hw, hh, wAngle, blink, isDead);
                 break;
         }
         c.restore();
     }
 
     // [SKIN 0] Garuda Relawan
-    private void drawBirdGaruda(Canvas c, float hw, float hh, float wAngle, boolean blink) {
+    private void drawBirdGaruda(Canvas c, float hw, float hh, float wAngle, boolean blink, boolean isDead) {
         p.setStyle(Paint.Style.FILL);
         p.setColor(0xFFFFB300);
         rf.set(-hw, -hh, hw, hh);
@@ -1256,12 +1367,12 @@ public class GameView extends View {
         p.setStrokeWidth(1.2f * SCALE);
         c.drawRoundRect(rf, 4 * SCALE, 4 * SCALE, p);
 
-        drawBirdEye(c, hw, hh, blink);
+        drawBirdEye(c, hw, hh, blink, isDead);
         drawBirdBeak(c, hw);
     }
 
     // [SKIN 1] Satgas Damkar
-    private void drawBirdDamkar(Canvas c, float hw, float hh, float wAngle, boolean blink) {
+    private void drawBirdDamkar(Canvas c, float hw, float hh, float wAngle, boolean blink, boolean isDead) {
         p.setStyle(Paint.Style.FILL);
         p.setColor(0xFFE65100);
         rf.set(-hw, -hh, hw, hh);
@@ -1286,12 +1397,12 @@ public class GameView extends View {
         p.setColor(0xFFFFAB00);
         c.drawRect(-hw * 0.85f, -hh * 0.35f, hw * 0.9f, -hh * 0.15f, p);
 
-        drawBirdEye(c, hw, hh, blink);
+        drawBirdEye(c, hw, hh, blink, isDead);
         drawBirdBeak(c, hw);
     }
 
     // [SKIN 2] Phoenix Rimba
-    private void drawBirdPhoenix(Canvas c, float hw, float hh, float wAngle, boolean blink) {
+    private void drawBirdPhoenix(Canvas c, float hw, float hh, float wAngle, boolean blink, boolean isDead) {
         long tm = System.currentTimeMillis();
         float pulse = 0.85f + 0.15f * (float)Math.sin(tm * 0.008f);
 
@@ -1321,12 +1432,12 @@ public class GameView extends View {
         c.drawPath(pa, p);
         c.restore();
 
-        drawBirdEye(c, hw, hh, blink);
+        drawBirdEye(c, hw, hh, blink, isDead);
         drawBirdBeak(c, hw);
     }
 
     // [SKIN 3] Cyber Mecha
-    private void drawBirdMecha(Canvas c, float hw, float hh, float wAngle) {
+    private void drawBirdMecha(Canvas c, float hw, float hh, float wAngle, boolean isDead) {
         p.setStyle(Paint.Style.FILL);
         p.setColor(0xFF37474F);
         rf.set(-hw, -hh, hw, hh);
@@ -1347,9 +1458,24 @@ public class GameView extends View {
         c.drawPath(pa, p);
         c.restore();
 
-        p.setColor(0xFF00E5FF);
-        rf.set(hw * 0.15f, -hh * 0.35f, hw * 0.85f, -hh * 0.05f);
-        c.drawRoundRect(rf, 3 * SCALE, 3 * SCALE, p);
+        if (isDead) {
+            p.setColor(0xFFFF1744); // Critical red visor
+            rf.set(hw * 0.15f, -hh * 0.35f, hw * 0.85f, -hh * 0.05f);
+            c.drawRoundRect(rf, 3 * SCALE, 3 * SCALE, p);
+
+            // Red warning cross on visor
+            p.setStyle(Paint.Style.STROKE);
+            p.setColor(0xFFFFFFFF);
+            p.setStrokeWidth(1.4f * SCALE);
+            float vx = hw * 0.5f, vy = -hh * 0.20f, vs = 3.5f * SCALE;
+            c.drawLine(vx - vs, vy - vs, vx + vs, vy + vs, p);
+            c.drawLine(vx + vs, vy - vs, vx - vs, vy + vs, p);
+            p.setStyle(Paint.Style.FILL);
+        } else {
+            p.setColor(0xFF00E5FF);
+            rf.set(hw * 0.15f, -hh * 0.35f, hw * 0.85f, -hh * 0.05f);
+            c.drawRoundRect(rf, 3 * SCALE, 3 * SCALE, p);
+        }
 
         p.setColor(0xFFFFAB00);
         pa.reset();
@@ -1359,11 +1485,25 @@ public class GameView extends View {
         pa.close();
         c.drawPath(pa, p);
 
-        p.setColor(0xFF00E5FF);
-        c.drawCircle(-hw * 0.85f, 0, (4 + (float)Math.sin(System.currentTimeMillis() * 0.02f) * 2) * SCALE, p);
+        if (!isDead) {
+            p.setColor(0xFF00E5FF);
+            c.drawCircle(-hw * 0.85f, 0, (4 + (float)Math.sin(System.currentTimeMillis() * 0.02f) * 2) * SCALE, p);
+        } else {
+            p.setColor(0x88424242);
+            c.drawCircle(-hw * 0.85f, 0, 3 * SCALE, p);
+        }
     }
 
-    private void drawBirdEye(Canvas c, float hw, float hh, boolean blink) {
+    private void drawBirdEye(Canvas c, float hw, float hh, boolean blink, boolean isDead) {
+        if (isDead) {
+            p.setStyle(Paint.Style.STROKE);
+            p.setColor(0xFF212121);
+            p.setStrokeWidth(2.4f * SCALE);
+            float ex = hw * 0.40f, ey = -hh * 0.25f, es = 4.2f * SCALE;
+            c.drawLine(ex - es, ey - es, ex + es, ey + es, p);
+            c.drawLine(ex + es, ey - es, ex - es, ey + es, p);
+            return;
+        }
         if (blink) {
             p.setStyle(Paint.Style.STROKE);
             p.setColor(0xFF263238);
@@ -2639,14 +2779,21 @@ public class GameView extends View {
     }
 
     private void drawGameOverScreen(Canvas c) {
+        if (gameOverAnimProgress < 1.0f) {
+            gameOverAnimProgress = Math.min(1.0f, gameOverAnimProgress + 0.05f);
+        }
+        float t = gameOverAnimProgress;
+        float easeOut = 1.0f - (1.0f - t) * (1.0f - t);
+
         p.setStyle(Paint.Style.FILL);
-        p.setColor(0x99000000);
+        p.setColor(Color.argb((int)(0x99 * easeOut), 0, 0, 0));
         c.drawRect(0, 0, W, H, p);
 
         float cardW = Math.min(320 * SCALE, W * 0.88f);
         float cardH = 328 * SCALE;
         float cardX = (W - cardW) / 2;
-        float cardY = safeTop + (playableH - cardH) * 0.35f;
+        float cardTargetY = safeTop + (playableH - cardH) * 0.35f;
+        float cardY = cardTargetY + (1.0f - easeOut) * (85 * SCALE);
 
         p.setShader(new LinearGradient(cardX, cardY, cardX, cardY + cardH,
                 new int[]{0xFF3E1708, 0xFF1E0A02}, null, Shader.TileMode.CLAMP));
@@ -2711,7 +2858,7 @@ public class GameView extends View {
         goRetryBtnW = cardW - 40 * SCALE;
         goRetryBtnH = 46 * SCALE;
         goRetryBtnX = cardX + 20 * SCALE;
-        goRetryBtnY = scoreBoxY + scoreBoxH + 16 * SCALE;
+        goRetryBtnY = scoreBoxY + scoreBoxH + 14 * SCALE;
 
         // Shadow / 3D edge under retry button
         p.setStyle(Paint.Style.FILL);
@@ -2743,7 +2890,7 @@ public class GameView extends View {
         goMenuBtnW = goRetryBtnW;
         goMenuBtnH = 46 * SCALE;
         goMenuBtnX = goRetryBtnX;
-        goMenuBtnY = goRetryBtnY + goRetryBtnH + 12 * SCALE;
+        goMenuBtnY = goRetryBtnY + goRetryBtnH + 10 * SCALE;
 
         // Shadow / 3D edge under menu button
         p.setStyle(Paint.Style.FILL);
@@ -2770,6 +2917,25 @@ public class GameView extends View {
         tp.setShadowLayer(3 * SCALE, 0, 2 * SCALE, 0xFF000000);
         c.drawText("MENU UTAMA", W / 2, goMenuBtnY + goMenuBtnH * 0.67f, tp);
         tp.clearShadowLayer();
+    }
+
+    private void drawDizzyStars(Canvas c, float bx, float by) {
+        long timeMs = System.currentTimeMillis();
+        float headX = bx - 2 * SCALE;
+        float headY = by - 6 * SCALE;
+        for (int i = 0; i < 3; i++) {
+            float starAngle = timeMs * 0.0055f + i * ((float)Math.PI * 2 / 3);
+            float sx = headX + (float)Math.cos(starAngle) * (16 * SCALE);
+            float sy = headY + (float)Math.sin(starAngle) * (6 * SCALE);
+            tp.setTypeface(tfBlack);
+            tp.setColor(0xFFFFD54F);
+            tp.setTextSize(10 * SCALE);
+            tp.setTextAlign(Paint.Align.CENTER);
+            tp.setFakeBoldText(true);
+            tp.setShadowLayer(2 * SCALE, 0, 1 * SCALE, 0xFF000000);
+            c.drawText("★", sx, sy, tp);
+            tp.clearShadowLayer();
+        }
     }
 
     private void drawParticles(Canvas c) {
@@ -2809,6 +2975,57 @@ public class GameView extends View {
             pr.life = pr.maxLife = 0.5f + rng.nextFloat() * 0.5f;
             pr.color = (rng.nextBoolean()) ? 0xFFFF5722 : (rng.nextBoolean() ? 0xFFFFD600 : 0xFF212121);
             particles.add(pr);
+        }
+    }
+
+    private void spawnGroundDust(float x, float y) {
+        for (int i = 0; i < 18; i++) {
+            Particle pt = new Particle();
+            pt.x = x + (rng.nextFloat() - 0.5f) * 24 * SCALE;
+            pt.y = y - 2 * SCALE;
+            float angle = -(float)Math.PI * 0.15f - rng.nextFloat() * ((float)Math.PI * 0.70f);
+            float speed = (30 + rng.nextFloat() * 110) * SCALE;
+            pt.vx = (float)Math.cos(angle) * speed;
+            pt.vy = (float)Math.sin(angle) * speed;
+            pt.size = (4 + rng.nextFloat() * 5) * SCALE;
+            pt.maxLife = 0.45f + rng.nextFloat() * 0.35f;
+            pt.life = pt.maxLife;
+            pt.color = (rng.nextBoolean() ? 0xFF8D6E63 : 0xFF5D4037);
+            particles.add(pt);
+        }
+    }
+
+    private void spawnFeathersAndSparks(float x, float y, int skin) {
+        int[] featherColors;
+        switch (skin) {
+            case 1:
+                featherColors = new int[]{ 0xFFFF9100, 0xFFE65100, 0xFFFFD600, 0xFFFFFFFF };
+                break;
+            case 2:
+                featherColors = new int[]{ 0xFFFF1744, 0xFFFF5252, 0xFFFFD600, 0xFFFFAB00 };
+                break;
+            case 3:
+                featherColors = new int[]{ 0xFF00E5FF, 0xFFCFD8DC, 0xFF90A4AE, 0xFFFFD600 };
+                break;
+            case 0:
+            default:
+                featherColors = new int[]{ 0xFFFFB300, 0xFFFF8F00, 0xFFFFF9C4, 0xFF4E342E };
+                break;
+        }
+
+        for (int i = 0; i < 24; i++) {
+            Particle pt = new Particle();
+            pt.x = x;
+            pt.y = y;
+            float angle = rng.nextFloat() * (float)Math.PI * 2;
+            float speed = (60 + rng.nextFloat() * 200) * SCALE;
+            pt.vx = (float)Math.cos(angle) * speed;
+            pt.vy = (float)Math.sin(angle) * speed;
+            pt.size = (3.5f + rng.nextFloat() * 4.5f) * SCALE;
+            pt.maxLife = 0.55f + rng.nextFloat() * 0.45f;
+            pt.life = pt.maxLife;
+            pt.color = featherColors[rng.nextInt(featherColors.length)];
+            particles.add(pt);
         }
     }
 
@@ -2855,6 +3072,10 @@ public class GameView extends View {
     public boolean onTouchEvent(MotionEvent event) {
         if (event.getAction() != MotionEvent.ACTION_DOWN) return super.onTouchEvent(event);
         float tx = event.getX(), ty = event.getY();
+
+        if (gameState == STATE_DYING) {
+            return true;
+        }
 
         if (gameState == STATE_SKINS) {
             handleSkinTouch(tx, ty);
@@ -2931,6 +3152,8 @@ public class GameView extends View {
     }
 
     private void handleGameOverTouch(float tx, float ty) {
+        if (gameOverAnimProgress < 0.65f) return;
+
         // [1] COBA LAGI (Retry Button)
         if (tx >= goRetryBtnX - 8 * SCALE && tx <= goRetryBtnX + goRetryBtnW + 8 * SCALE
                 && ty >= goRetryBtnY - 8 * SCALE && ty <= goRetryBtnY + goRetryBtnH + 8 * SCALE) {
@@ -2971,7 +3194,7 @@ public class GameView extends View {
             gameState = prevState;
             playClickSound();
             return true;
-        } else if (gameState == STATE_GAMEOVER) {
+        } else if (gameState == STATE_GAMEOVER || gameState == STATE_DYING) {
             goToMenu();
             return true;
         }
