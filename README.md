@@ -1,15 +1,20 @@
 # 🔥 Flappy Sawit - Game Flappy Bird Tema Kebakaran Kelapa Sawit
 
-## Tentang Game
-Game Flappy Bird dengan background kebakaran hutan kelapa sawit. Burung pakai masker terbang melewati batang sawit yang terbakar!
+## 📥 Download Game (Siap Install di Android)
+Langsung unduh file APK resmi yang sudah ditandatangani:
+👉 [**Download FlappySawit.apk**](https://github.com/GUPRON98/FlappySawit/raw/main/FlappySawit.apk)
 
-## Fitur
-- 🌴 Background kebakaran hutan sawit
-- 🔥 Efek api & asap realistis
-- 🐦 Burung pakai masker (karena asap!)
-- 📊 Skor & High Score tersimpan
-- 📱 Responsive untuk semua ukuran layar
-- 🎮 Kontrol: Tap layar / Spasi
+## Tentang Game
+Game Flappy Bird bernuansa kebakaran rimba gambut perkebunan kelapa sawit. Kendalikan burung tangguh bermasker menembus rintangan pohon sawit dan kobaran api hutan!
+
+## Fitur Unggulan
+- 🌴 **Background Kebakaran Rimba Sawit**: Multi-layer paralaks kanopi sawit, gunung berapi, awan asap, dan percikan bara api (*embers*).
+- ⛰️ **Lapisan Tanah Gambut & Perkebunan (*Peatland Earth*)**: Penampang tanah subur berlapis, batuan alami, jalinan akar serabut sawit, dan rerumputan tropis berujung keemasan.
+- 🔊 **Sound Design Modern (*Zero-Latency Audio*)**: Suara kepakan aerodinamis (*whoosh-pop*), denting bel kristal saat meraih skor, benturan sinematik *sub-bass impact*, dan *bubble pop* pada tombol.
+- 🏠 **Tombol Menu Utama di Layar Game Over**: Opsi langsung kembali ke menu utama atau mencoba kembali dengan sekali sentuh.
+- 🐦 **Wardrobe & Custom Skins**: Pilihan skin karakter burung dan tema rintangan sawit.
+- 📊 **Skor & Rekor Tertinggi**: Tersimpan otomatis secara lokal.
+- 📱 **Fullscreen Immersive Native**: Berjalan 100% mulus (60/120 FPS SurfaceView Engine murni).
 
 ## Cara Build APK
 

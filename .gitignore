@@ -1,10 +1,12 @@
 # Build output & caches
 build/
 .gradle/
-*.apk
 *.ap_
 *.dex
 *.class
+
+# Allow release APK
+!FlappySawit.apk
 
 # Android Studio / IDE
 .idea/
