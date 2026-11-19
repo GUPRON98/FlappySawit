@@ -1,0 +1,20 @@
+# Build output & caches
+build/
+.gradle/
+*.apk
+*.ap_
+*.dex
+*.class
+
+# Android Studio / IDE
+.idea/
+*.iml
+.vscode/
+
+# Keystore (keamanan kredensial signing)
+*.keystore
+*.jks
+
+# OS files
+.DS_Store
+Thumbs.db
