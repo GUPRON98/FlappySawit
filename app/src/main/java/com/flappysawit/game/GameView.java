@@ -78,63 +78,78 @@ public class GameView extends View {
     private long fpsTimer = 0;
 
     // ========== CHARACTER SKINS SYSTEM ==========
-    private int currentSkin = 0;   // 0=Garuda Relawan, 1=Satgas Damkar, 2=Phoenix Rimba, 3=Cyber Mecha
+    private int currentSkin = 0;   // 0=Garuda, 1=Damkar, 2=Phoenix, 3=Mecha, 4=Intelijen, 5=Cendrawasih, 6=Naga
     private int previewSkin = 0;
-    private static final int TOTAL_SKINS = 4;
+    private static final int TOTAL_SKINS = 7;
 
     private static final String[] SKIN_NAMES = {
         "Garuda Relawan",
         "Satgas Damkar",
         "Phoenix Rimba",
-        "Cyber Mecha"
+        "Cyber Mecha",
+        "Elang Intelijen",
+        "Raja Cendrawasih",
+        "Naga Rimba Purba"
     };
 
     private static final String[] SKIN_TITLES = {
         "RELAWAN N95",
         "SATGAS MANGGALA",
         "SANG PHOENIX",
-        "DRONE PENYELAMAT"
+        "DRONE PENYELAMAT",
+        "PENYIDIK OTT KPK",
+        "MAHKOTA RIMBA",
+        "LEGENDA PURBA"
     };
 
     private static final String[] SKIN_DESC = {
         "Elang pejuang memakai masker N95 penahan asap kabut pekat.",
         "Helm damkar pelindung api & rompi fosfor Manggala Agni.",
         "Burung mistis abadi, kebal panas & melibas bara api rimba!",
-        "Drone futuristik anti-asap dengan jet plasma booster canggih."
+        "Drone futuristik anti-asap dengan jet plasma booster canggih.",
+        "Agen penyidik OTT berdasi & kacamata hitam, menyita aset sawit.",
+        "Burung surga bermahkota zamrud & ekor pita emas nusantara.",
+        "Naga purba bersisik rubi api pembakar habis mafia tanah!"
     };
 
     // ========== OBSTACLE SKINS SYSTEM ==========
-    private int currentPipeSkin = 0; // 0=Sawit Membara, 1=Cerobong PKS, 2=Tower Listrik, 3=Magma Obsidian
+    private int currentPipeSkin = 0; // 0=Sawit, 1=PKS, 2=Tower, 3=Magma, 4=Koruptor, 5=Cyber
     private int previewPipeSkin = 0;
-    private static final int TOTAL_PIPE_SKINS = 4;
+    private static final int TOTAL_PIPE_SKINS = 6;
     private int skinTab = 0; // 0 = Karakter, 1 = Rintangan
 
     private static final String[] PIPE_SKIN_NAMES = {
         "Sawit Membara",
         "Cerobong PKS",
         "Tower Listrik",
-        "Magma Obsidian"
+        "Magma Obsidian",
+        "Pilar Koruptor",
+        "Reaktor Cyber"
     };
 
     private static final String[] PIPE_SKIN_TITLES = {
         "KLASIK KEBUN SAWIT",
         "PABRIK INDUSTRI SAWIT",
         "TRANSMISI GAMBUT",
-        "INFERNO PURBA"
+        "INFERNO PURBA",
+        "ASET DISITA KPK",
+        "MATRIX ZONA HIJAU"
     };
 
     private static final String[] PIPE_SKIN_DESC = {
         "Batang kelapa sawit terbakar dengan serat wajik dan bara api.",
         "Pipa baja pabrik sawit bergaris hazard kuning-hitam & suar merah.",
         "Menara baja transmisi dengan sengatan petir busur plasma biru.",
-        "Pilar batu obsidian hitam kristal dengan urat lahar magma membara."
+        "Pilar batu obsidian hitam kristal dengan urat lahar magma membara.",
+        "Pilar marmer emas mewah dililit pita segel garis polisi DISITA KPK.",
+        "Pilar conduit siber bergelombang sirkuit neon pelindung rimba."
     };
 
     // ========== ECONOMY & PROGRESSION SYSTEM ==========
     private int sawitCoins = 0;
     private int runCoins = 0;
-    private static final int[] SKIN_COSTS = { 0, 20, 50, 100 };
-    private static final int[] PIPE_SKIN_COSTS = { 0, 25, 60, 120 };
+    private static final int[] SKIN_COSTS = { 0, 20, 50, 100, 180, 280, 450 };
+    private static final int[] PIPE_SKIN_COSTS = { 0, 25, 60, 120, 175, 260 };
 
     // Cached full-screen shaders to prevent GC spikes and maintain 60 FPS
     private LinearGradient skyShader;
@@ -858,33 +873,33 @@ public class GameView extends View {
 
         // 1. TOP SATIRICAL NEWS TICKER (KPK & Forestry Corruption Watch)
         float tickerW = Math.min(320 * SCALE, W * 0.94f);
-        float tickerH = 26 * SCALE;
-        float tickerY = safeTop + 3 * SCALE;
+        float tickerH = 25 * SCALE;
+        float tickerY = safeTop + 5 * SCALE;
         float tickerX = (W - tickerW) / 2;
 
         p.setStyle(Paint.Style.FILL);
         p.setColor(0x77050201);
         rf.set(tickerX, tickerY, tickerX + tickerW, tickerY + tickerH);
-        c.drawRoundRect(rf, 13 * SCALE, 13 * SCALE, p);
+        c.drawRoundRect(rf, 12 * SCALE, 12 * SCALE, p);
 
         p.setStyle(Paint.Style.STROKE);
         p.setColor(0x88FF5722);
         p.setStrokeWidth(1.2f * SCALE);
-        c.drawRoundRect(rf, 13 * SCALE, 13 * SCALE, p);
+        c.drawRoundRect(rf, 12 * SCALE, 12 * SCALE, p);
 
         // Left Tag Badge: 🔴 KORUPSI WATCH
         float tagW = 86 * SCALE;
         p.setStyle(Paint.Style.FILL);
         p.setColor(0xFFD50000);
         rf.set(tickerX + 2 * SCALE, tickerY + 2 * SCALE, tickerX + tagW, tickerY + tickerH - 2 * SCALE);
-        c.drawRoundRect(rf, 11 * SCALE, 11 * SCALE, p);
+        c.drawRoundRect(rf, 10 * SCALE, 10 * SCALE, p);
 
         tp.setTypeface(tfCondensed);
         tp.setColor(Color.WHITE);
         tp.setTextAlign(Paint.Align.CENTER);
         tp.setTextSize(9.5f * SCALE);
         tp.setFakeBoldText(true);
-        c.drawText("🔴 KORUPSI WATCH", tickerX + tagW / 2, tickerY + 16.5f * SCALE, tp);
+        c.drawText("🔴 KORUPSI WATCH", tickerX + tagW / 2, tickerY + 16 * SCALE, tp);
 
         // Cycling satirical headlines with smooth alpha fade
         int headlineIdx = (int)((timeMs / 3800) % SATIRE_HEADLINES.length);
@@ -900,20 +915,20 @@ public class GameView extends View {
 
         c.save();
         c.clipRect(tickerX + tagW + 6 * SCALE, tickerY, tickerX + tickerW - 6 * SCALE, tickerY + tickerH);
-        c.drawText(SATIRE_HEADLINES[headlineIdx], tickerX + tagW + 8 * SCALE, tickerY + 17 * SCALE, tp);
+        c.drawText(SATIRE_HEADLINES[headlineIdx], tickerX + tagW + 8 * SCALE, tickerY + 16.5f * SCALE, tp);
         c.restore();
 
-        // 2. 3D GRAND ARCADE TITLE & SATIRICAL SUBTITLE
-        float titleY = safeTop + 54 * SCALE;
-        draw3DText(c, "FLAPPY SAWIT", W / 2, titleY, 44 * SCALE, tfBlack, 0xFFFFF176, 0xFFFF3D00, 0xFF7F1D1D);
+        // 2. 3D GRAND ARCADE TITLE & SATIRICAL SUBTITLE (Fixed Vertical Spacing)
+        float titleY = safeTop + 76 * SCALE;
+        draw3DText(c, "FLAPPY SAWIT", W / 2, titleY, 38 * SCALE, tfBlack, 0xFFFFF176, 0xFFFF3D00, 0xFF7F1D1D);
 
         tp.setTypeface(tfCondensed);
         tp.setColor(0xFFFFCC80);
-        tp.setTextSize(12.5f * SCALE);
+        tp.setTextSize(12 * SCALE);
         tp.setTextAlign(Paint.Align.CENTER);
         tp.setFakeBoldText(true);
         tp.setShadowLayer(4 * SCALE, 0, 2 * SCALE, 0xFF000000);
-        c.drawText("Lawan Kongkalikong Mafia HGU & Pipa Pejabat!", W / 2, titleY + 21 * SCALE, tp);
+        c.drawText("Lawan Kongkalikong Mafia HGU & Pipa Pejabat!", W / 2, titleY + 22 * SCALE, tp);
         tp.clearShadowLayer();
 
         // 3. MODERN GLASSMORPHISM DASHBOARD (DUAL-COLUMN)
@@ -941,6 +956,7 @@ public class GameView extends View {
         tp.setTypeface(tfCondensed);
         tp.setColor(0xFFFFD54F);
         tp.setTextSize(9.5f * SCALE);
+        tp.setTextAlign(Paint.Align.CENTER);
         tp.setFakeBoldText(true);
         c.drawText("🏆 REKOR OPERASI", leftX + cardW / 2, dashY + 15 * SCALE, tp);
 
@@ -962,7 +978,7 @@ public class GameView extends View {
         tp.setFakeBoldText(false);
         c.drawText(rankTitle, leftX + cardW / 2, dashY + 44 * SCALE, tp);
 
-        // [B] RIGHT CARD: KAS ANTI-KORUPSI
+        // [B] RIGHT CARD: KAS ANTI-KORUPSI (With Vector Mini Coin Icon)
         p.setStyle(Paint.Style.FILL);
         p.setShader(new LinearGradient(rightX, dashY, rightX, dashY + cardH,
                 new int[]{0x662A1005, 0x66150602}, null, Shader.TileMode.CLAMP));
@@ -978,17 +994,29 @@ public class GameView extends View {
         tp.setTypeface(tfCondensed);
         tp.setColor(0xFFFFD54F);
         tp.setTextSize(9.5f * SCALE);
+        tp.setTextAlign(Paint.Align.CENTER);
         tp.setFakeBoldText(true);
-        c.drawText("🪙 KAS ANTI-KORUPSI", rightX + cardW / 2, dashY + 15 * SCALE, tp);
+        c.drawText("KAS ANTI-KORUPSI", rightX + cardW / 2, dashY + 15 * SCALE, tp);
 
+        // Value + Real Vector Coin (No broken glyph!)
         tp.setTypeface(tfBlack);
         tp.setColor(0xFFFFE082);
         tp.setTextSize(18 * SCALE);
-        c.drawText(sawitCoins + " 🪙", rightX + cardW / 2, dashY + 33 * SCALE, tp);
+
+        String coinValStr = String.valueOf(sawitCoins);
+        float numW = tp.measureText(coinValStr);
+        float vCoinR = 8.0f * SCALE;
+        float totalRowW = numW + vCoinR * 2 + 6 * SCALE;
+        float rowStartX = rightX + (cardW - totalRowW) / 2;
+
+        tp.setTextAlign(Paint.Align.LEFT);
+        c.drawText(coinValStr, rowStartX, dashY + 33 * SCALE, tp);
+        drawMiniVectorCoin(c, rowStartX + numW + 4 * SCALE + vCoinR, dashY + 27 * SCALE, vCoinR);
 
         tp.setTypeface(tfCondensed);
         tp.setColor(0xFF81C784); // Clean green tag
         tp.setTextSize(8.5f * SCALE);
+        tp.setTextAlign(Paint.Align.CENTER);
         tp.setFakeBoldText(false);
         c.drawText("Dana Sitaan Bersih", rightX + cardW / 2, dashY + 44 * SCALE, tp);
 
@@ -1115,13 +1143,28 @@ public class GameView extends View {
         if (satireQuoteTimer > 0) {
             drawSpeechBubble(c, birdCenterX, birdCenterY - 14 * SCALE, currentSatireQuote);
         } else {
-            float hintPulse = 0.6f + 0.4f * (float)Math.sin(timeMs * 0.004f);
+            float hintPulse = 0.7f + 0.3f * (float)Math.sin(timeMs * 0.005f);
+            float pillW = 164 * SCALE;
+            float pillH = 22 * SCALE;
+            float pillX = birdCenterX - pillW / 2;
+            float pillY = birdCenterY - 44 * SCALE;
+
+            p.setStyle(Paint.Style.FILL);
+            p.setColor(0x55000000);
+            rf.set(pillX, pillY, pillX + pillW, pillY + pillH);
+            c.drawRoundRect(rf, 11 * SCALE, 11 * SCALE, p);
+
+            p.setStyle(Paint.Style.STROKE);
+            p.setColor(Color.argb((int)(180 * hintPulse), 255, 179, 0));
+            p.setStrokeWidth(1.0f * SCALE);
+            c.drawRoundRect(rf, 11 * SCALE, 11 * SCALE, p);
+
             tp.setTypeface(tfCondensed);
-            tp.setColor(Color.argb((int)(200 * hintPulse), 255, 224, 130));
-            tp.setTextSize(9.5f * SCALE);
+            tp.setColor(Color.argb((int)(255 * hintPulse), 255, 236, 179));
+            tp.setTextSize(10 * SCALE);
             tp.setTextAlign(Paint.Align.CENTER);
             tp.setFakeBoldText(true);
-            c.drawText("💬 Ketuk Burung untuk Bersuara!", birdCenterX, birdCenterY - 36 * SCALE, tp);
+            c.drawText("💬 Ketuk Burung untuk Bersuara!", birdCenterX, pillY + 14.5f * SCALE, tp);
         }
     }
 
@@ -1432,7 +1475,7 @@ public class GameView extends View {
         } else if (sawitCoins >= cost) {
             btnText = "🔓 BUKA: " + cost + " KOIN SAWIT";
         } else {
-            btnText = "🔒 BUTUH " + cost + " 🪙 (KURANG " + (cost - sawitCoins) + ")";
+            btnText = "🔒 BUTUH " + cost + " KOIN (KURANG " + (cost - sawitCoins) + ")";
         }
         c.drawText(btnText, W / 2, equipBtnY + 28 * SCALE, tp);
         tp.clearShadowLayer();
@@ -1488,6 +1531,15 @@ public class GameView extends View {
                 break;
             case 3:
                 drawBirdMecha(c, hw, hh, wAngle, isDead);
+                break;
+            case 4:
+                drawBirdIntelijen(c, hw, hh, wAngle, blink, isDead);
+                break;
+            case 5:
+                drawBirdCendrawasih(c, hw, hh, wAngle, blink, isDead);
+                break;
+            case 6:
+                drawBirdNaga(c, hw, hh, wAngle, isDead);
                 break;
             case 0:
             default:
@@ -1649,6 +1701,186 @@ public class GameView extends View {
             p.setColor(0x88424242);
             c.drawCircle(-hw * 0.85f, 0, 3 * SCALE, p);
         }
+    }
+
+    // [SKIN 4] Elang Intelijen (KPK Agent Hawk)
+    private void drawBirdIntelijen(Canvas c, float hw, float hh, float wAngle, boolean blink, boolean isDead) {
+        // Dark charcoal tactical body
+        p.setStyle(Paint.Style.FILL);
+        p.setColor(0xFF263238);
+        rf.set(-hw, -hh, hw, hh);
+        c.drawOval(rf, p);
+
+        // White formal shirt collar & chest
+        p.setColor(0xFFECEFF1);
+        rf.set(-hw * 0.2f, -hh * 0.1f, hw * 0.5f, hh * 0.85f);
+        c.drawOval(rf, p);
+
+        // Red tie / tactical badge
+        p.setColor(0xFFD50000);
+        pa.reset();
+        pa.moveTo(hw * 0.1f, -hh * 0.05f);
+        pa.lineTo(hw * 0.25f, -hh * 0.05f);
+        pa.lineTo(hw * 0.22f, hh * 0.65f);
+        pa.lineTo(hw * 0.17f, hh * 0.85f);
+        pa.lineTo(hw * 0.13f, hh * 0.65f);
+        pa.close();
+        c.drawPath(pa, p);
+
+        // Tactical dark wing with flap rotation
+        p.setColor(0xFF37474F);
+        c.save();
+        c.translate(-hw * 0.3f, 0);
+        c.rotate((float)Math.toDegrees(wAngle) * 0.8f);
+        rf.set(-hw * 0.5f, -hh * 0.4f, hw * 0.5f, hh * 0.4f);
+        c.drawOval(rf, p);
+        p.setColor(0xFF102027);
+        p.setStyle(Paint.Style.STROKE);
+        p.setStrokeWidth(1.2f * SCALE);
+        c.drawLine(-hw * 0.2f, 0, hw * 0.4f, 0, p);
+        c.restore();
+
+        p.setStyle(Paint.Style.FILL);
+        drawBirdBeak(c, hw);
+
+        // Cool black Aviator sunglasses / agent shades
+        if (isDead) {
+            drawBirdEye(c, hw, hh, false, true);
+        } else {
+            p.setColor(0xFF111111);
+            rf.set(hw * 0.05f, -hh * 0.45f, hw * 0.65f, hh * 0.15f);
+            c.drawRoundRect(rf, 3 * SCALE, 3 * SCALE, p);
+
+            // Reflection glint
+            p.setColor(0xFF00E5FF);
+            p.setStyle(Paint.Style.STROKE);
+            p.setStrokeWidth(1.0f * SCALE);
+            c.drawLine(hw * 0.12f, -hh * 0.15f, hw * 0.35f, -hh * 0.38f, p);
+            p.setStyle(Paint.Style.FILL);
+        }
+    }
+
+    // [SKIN 5] Raja Cendrawasih (Royal Bird of Paradise)
+    private void drawBirdCendrawasih(Canvas c, float hw, float hh, float wAngle, boolean blink, boolean isDead) {
+        long timeMs = System.currentTimeMillis();
+
+        // Elegant flowing twin tail ribbons
+        float wave1 = (float)Math.sin(timeMs * 0.007f) * (5 * SCALE);
+        float wave2 = (float)Math.cos(timeMs * 0.007f) * (5 * SCALE);
+        p.setStyle(Paint.Style.STROKE);
+        p.setColor(0xFFFFD54F);
+        p.setStrokeWidth(1.8f * SCALE);
+        pa.reset();
+        pa.moveTo(-hw * 0.8f, hh * 0.2f);
+        pa.quadTo(-hw * 1.5f, hh * 0.4f + wave1, -hw * 2.2f, hh * 0.9f + wave1);
+        c.drawPath(pa, p);
+
+        pa.reset();
+        pa.moveTo(-hw * 0.8f, hh * 0.4f);
+        pa.quadTo(-hw * 1.4f, hh * 0.7f + wave2, -hw * 2.1f, hh * 1.3f + wave2);
+        c.drawPath(pa, p);
+
+        // Emerald green body
+        p.setStyle(Paint.Style.FILL);
+        p.setColor(0xFF00796B);
+        rf.set(-hw, -hh, hw, hh);
+        c.drawOval(rf, p);
+
+        // Golden amber chest & belly
+        p.setColor(0xFFFFB300);
+        rf.set(-hw * 0.3f, -hh * 0.2f, hw * 0.6f, hh * 0.85f);
+        c.drawOval(rf, p);
+
+        // Royal sapphire wing
+        p.setColor(0xFF1565C0);
+        c.save();
+        c.translate(-hw * 0.3f, 0);
+        c.rotate((float)Math.toDegrees(wAngle) * 0.8f);
+        rf.set(-hw * 0.5f, -hh * 0.4f, hw * 0.5f, hh * 0.4f);
+        c.drawOval(rf, p);
+        c.restore();
+
+        p.setStyle(Paint.Style.FILL);
+
+        // Golden feather crown on head
+        p.setColor(0xFFFFD54F);
+        pa.reset();
+        pa.moveTo(-hw * 0.1f, -hh * 0.8f);
+        pa.lineTo(hw * 0.15f, -hh * 1.3f);
+        pa.lineTo(hw * 0.3f, -hh * 0.7f);
+        pa.close();
+        c.drawPath(pa, p);
+
+        drawBirdEye(c, hw, hh, blink, isDead);
+        drawBirdBeak(c, hw);
+    }
+
+    // [SKIN 6] Naga Rimba Purba (Mythic Flame Dragon)
+    private void drawBirdNaga(Canvas c, float hw, float hh, float wAngle, boolean isDead) {
+        // Ruby crimson dragon body
+        p.setStyle(Paint.Style.FILL);
+        p.setColor(0xFFB71C1C);
+        rf.set(-hw, -hh, hw, hh);
+        c.drawOval(rf, p);
+
+        // Magma underbelly plates
+        p.setColor(0xFFFF6D00);
+        rf.set(-hw * 0.3f, hh * 0.1f, hw * 0.5f, hh * 0.85f);
+        c.drawOval(rf, p);
+
+        // Jagged fiery dragon wings
+        c.save();
+        c.translate(-hw * 0.25f, -hh * 0.1f);
+        c.rotate((float)Math.toDegrees(wAngle) * 0.9f);
+        pa.reset();
+        pa.moveTo(0, 0);
+        pa.lineTo(-hw * 0.9f, -hh * 1.1f);
+        pa.lineTo(-hw * 0.4f, -hh * 0.4f);
+        pa.lineTo(-hw * 0.8f, 0);
+        pa.lineTo(-hw * 0.2f, hh * 0.2f);
+        pa.close();
+        p.setColor(0xFFFF3D00);
+        c.drawPath(pa, p);
+        p.setColor(0xFFFFD600);
+        p.setStyle(Paint.Style.STROKE);
+        p.setStrokeWidth(1.5f * SCALE);
+        c.drawPath(pa, p);
+        c.restore();
+
+        p.setStyle(Paint.Style.FILL);
+
+        // Golden dragon horns
+        p.setColor(0xFFFFD54F);
+        pa.reset();
+        pa.moveTo(-hw * 0.2f, -hh * 0.6f);
+        pa.quadTo(-hw * 0.6f, -hh * 1.4f, -hw * 0.8f, -hh * 1.3f);
+        pa.quadTo(-hw * 0.4f, -hh * 0.9f, 0, -hh * 0.7f);
+        pa.close();
+        c.drawPath(pa, p);
+
+        // Glowing dragon eye
+        if (isDead) {
+            tp.setTypeface(tfBlack);
+            tp.setColor(0xFFFF1744);
+            tp.setTextSize(9 * SCALE);
+            tp.setTextAlign(Paint.Align.CENTER);
+            c.drawText("X", hw * 0.35f, -hh * 0.05f, tp);
+        } else {
+            p.setColor(0xFFFFEA00); // Glowing yellow sclera
+            c.drawCircle(hw * 0.35f, -hh * 0.15f, 4.2f * SCALE, p);
+            p.setColor(0xFF212121); // Slit pupil
+            rf.set(hw * 0.33f, -hh * 0.25f, hw * 0.37f, -hh * 0.05f);
+            c.drawOval(rf, p);
+        }
+
+        // Dragon jaw / snout
+        p.setColor(0xFF7F0000);
+        pa.reset();
+        pa.moveTo(hw * 0.45f, -hh * 0.2f);
+        pa.lineTo(hw + 14 * SCALE, hh * 0.1f);
+        pa.lineTo(hw * 0.5f, hh * 0.45f);
+        pa.close();
+        c.drawPath(pa, p);
     }
 
     private void drawBirdEye(Canvas c, float hw, float hh, boolean blink, boolean isDead) {
@@ -2047,159 +2279,95 @@ public class GameView extends View {
 
     private void drawFloatingSawitCoin(Canvas c, float cx, float cy) {
         long timeMs = System.currentTimeMillis();
-        float bobY = (float)Math.sin(timeMs * 0.005f + cx * 0.025f) * (4.2f * SCALE);
+        float bobY = (float)Math.sin(timeMs * 0.005f + cx * 0.025f) * (4.0f * SCALE);
         float cyBob = cy + bobY;
 
-        float spinPhase = timeMs * 0.0045f + cx * 0.015f;
+        float spinPhase = timeMs * 0.0042f + cx * 0.015f;
         float cosA = (float)Math.cos(spinPhase);
         float sinA = (float)Math.sin(spinPhase);
         float absCos = Math.abs(cosA);
-        float edgeDir = (sinA >= 0 ? 1.0f : -1.0f);
 
-        float coinR = 16.5f * SCALE;
-        float coinW = Math.max(2.5f * SCALE, coinR * absCos);
-        float edgeThick = 4.5f * SCALE * (1.0f - absCos);
+        float coinR = 15.5f * SCALE;
 
-        // 1. Soft Pulsing Golden Aura (ambient lighting)
+        // 1. Soft Pulsing Golden Aura
         float auraPulse = 0.85f + 0.15f * (float)Math.sin(timeMs * 0.007f + cx);
-        float auraR = coinR * 1.55f * auraPulse;
         sp.setStyle(Paint.Style.FILL);
-        sp.setColor(Color.argb((int)(60 * auraPulse), 255, 200, 0));
-        rf.set(cx - auraR, cyBob - auraR, cx + auraR, cyBob + auraR);
-        c.drawOval(rf, sp);
+        sp.setColor(Color.argb((int)(55 * auraPulse), 255, 193, 7));
+        c.drawCircle(cx, cyBob, coinR * 1.55f * auraPulse, sp);
 
-        sp.setColor(Color.argb((int)(30 * auraPulse), 255, 120, 0));
-        rf.set(cx - auraR * 1.35f, cyBob - auraR * 1.35f, cx + auraR * 1.35f, cyBob + auraR * 1.35f);
-        c.drawOval(rf, sp);
-
-        // 2. 3D Cylindrical Edge (Burnished Gold Rim Thickness)
-        if (edgeThick > 0.8f * SCALE) {
+        // 2. 3D Cylindrical Coin Edge (Thickness)
+        if (absCos < 0.96f) {
+            float edgeThick = 3.6f * SCALE * (1.0f - absCos);
+            float edgeDir = (sinA >= 0 ? 1.0f : -1.0f);
             float backX = cx - edgeDir * edgeThick;
-            pa.reset();
-            pa.moveTo(cx, cyBob - coinR);
-            pa.lineTo(backX, cyBob - coinR);
-            pa.lineTo(backX, cyBob + coinR);
-            pa.lineTo(cx, cyBob + coinR);
-            pa.close();
 
+            c.save();
+            c.translate(backX, cyBob);
+            c.scale(absCos, 1.0f);
             p.setStyle(Paint.Style.FILL);
-            p.setColor(0xFF9E6000); // Deep burnished coin edge
-            c.drawPath(pa, p);
-
-            // Back face ellipse edge
-            rf.set(backX - coinW, cyBob - coinR, backX + coinW, cyBob + coinR);
-            c.drawOval(rf, p);
-
-            // Milled notches along edge
-            p.setStyle(Paint.Style.STROKE);
-            p.setColor(0xFF6D3C00);
-            p.setStrokeWidth(1.2f * SCALE);
-            float stepY = coinR * 0.45f;
-            for (float ny = cyBob - coinR + stepY * 0.6f; ny < cyBob + coinR - stepY * 0.4f; ny += stepY) {
-                c.drawLine(cx, ny, backX, ny, p);
-            }
+            p.setColor(0xFF8D5B00); // Deep burnished bronze edge
+            c.drawCircle(0, 0, coinR, p);
+            c.restore();
         }
 
-        // 3. Front Coin Outer Rim Base (Warm polished gold)
+        // 3. Front Coin Face (Transformed cleanly via Canvas scale matrix)
+        c.save();
+        c.translate(cx, cyBob);
+        c.scale(absCos, 1.0f);
+
+        // Outer Gold Rim
         p.setStyle(Paint.Style.FILL);
-        p.setColor(0xFFFFB300);
-        rf.set(cx - coinW, cyBob - coinR, cx + coinW, cyBob + coinR);
-        c.drawOval(rf, p);
+        p.setColor(0xFFFFB300); // Warm gold rim
+        c.drawCircle(0, 0, coinR, p);
 
-        // 4. Outer Rim Bevels: Highlight top-left, shadow bottom-right
+        // Outer Rim Highlight
         p.setStyle(Paint.Style.STROKE);
-        p.setStrokeWidth(1.4f * SCALE);
-        p.setColor(0xFFFFF9C4); // Shiny pale gold rim highlight
-        rf.set(cx - coinW + 0.6f * SCALE, cyBob - coinR + 0.6f * SCALE, cx + coinW - 0.6f * SCALE, cyBob + coinR - 0.6f * SCALE);
-        c.drawOval(rf, p);
+        p.setColor(0xFFFFF9C4);
+        p.setStrokeWidth(1.2f * SCALE);
+        c.drawCircle(0, 0, coinR - 0.7f * SCALE, p);
 
-        p.setColor(0xFFB26A00); // Shadow rim depth
-        rf.set(cx - coinW + 1.4f * SCALE, cyBob - coinR + 1.4f * SCALE, cx + coinW - 1.4f * SCALE, cyBob + coinR - 1.4f * SCALE);
-        c.drawOval(rf, p);
+        // Inner Golden Face
+        p.setStyle(Paint.Style.FILL);
+        p.setColor(0xFFFFC107);
+        c.drawCircle(0, 0, coinR * 0.76f, p);
 
-        // 5. Recessed Inner Coin Well
-        float innerW = coinW * 0.78f;
-        float innerR = coinR * 0.78f;
-        if (innerW > 1.2f * SCALE) {
-            p.setStyle(Paint.Style.FILL);
-            p.setColor(0xFFFFC107); // Rich golden center
-            rf.set(cx - innerW, cyBob - innerR, cx + innerW, cyBob + innerR);
-            c.drawOval(rf, p);
+        // Inner Milled Ring
+        p.setStyle(Paint.Style.STROKE);
+        p.setColor(0x88FFE082);
+        p.setStrokeWidth(0.9f * SCALE);
+        c.drawCircle(0, 0, coinR * 0.65f, p);
 
-            // Inner engraved ring (milled border)
-            p.setStyle(Paint.Style.STROKE);
-            p.setColor(0x88FFE082);
-            p.setStrokeWidth(0.9f * SCALE);
-            rf.set(cx - innerW * 0.88f, cyBob - innerR * 0.88f, cx + innerW * 0.88f, cyBob + innerR * 0.88f);
-            c.drawOval(rf, p);
+        // Embossed Star / Palm Coin Emblem
+        if (absCos > 0.20f) {
+            tp.setTypeface(tfBlack);
+            tp.setColor(0xFFBF360C); // Deep rust shadow for 3D depth
+            tp.setTextSize(coinR * 0.95f);
+            tp.setTextAlign(Paint.Align.CENTER);
+            tp.setFakeBoldText(true);
+            c.drawText("★", 0, coinR * 0.38f + 1 * SCALE, tp);
+
+            tp.setColor(0xFFFFFDE7); // Shiny golden star face
+            c.drawText("★", 0, coinR * 0.38f, tp);
         }
 
-        // 6. Crisp 3D Faceted Vector Star Emblem (Anti-aliased vector paths)
-        if (absCos > 0.22f) {
-            float starOutR = 8.5f * SCALE;
-            float starInR = 4.2f * SCALE;
-            float[] sx = new float[10];
-            float[] sy = new float[10];
-
-            for (int i = 0; i < 10; i++) {
-                double rad = Math.toRadians(i * 36 - 90);
-                float r = (i % 2 == 0) ? starOutR : starInR;
-                sx[i] = cx + (float)Math.cos(rad) * r * absCos;
-                sy[i] = cyBob + (float)Math.sin(rad) * r;
-            }
-
-            // Draw 5 facets with alternating 3D lighting
-            for (int i = 0; i < 5; i++) {
-                int tip = i * 2;
-                int leftInner = (tip + 9) % 10;
-                int rightInner = (tip + 1) % 10;
-
-                // Left facet (Light source side)
-                pa.reset();
-                pa.moveTo(cx, cyBob);
-                pa.lineTo(sx[leftInner], sy[leftInner]);
-                pa.lineTo(sx[tip], sy[tip]);
-                pa.close();
-                p.setStyle(Paint.Style.FILL);
-                p.setColor(0xFFFFFDE7); // Highlighted facet
-                c.drawPath(pa, p);
-
-                // Right facet (Shadow side)
-                pa.reset();
-                pa.moveTo(cx, cyBob);
-                pa.lineTo(sx[tip], sy[tip]);
-                pa.lineTo(sx[rightInner], sy[rightInner]);
-                pa.close();
-                p.setColor(0xFFE65100); // Deep amber shadow facet
-                c.drawPath(pa, p);
-            }
-        }
-
-        // 7. Dynamic Metallic Gloss Reflection (Diagonal light sheen)
+        // Metallic Diagonal Sheen Reflection
         if (absCos > 0.30f) {
-            pa.reset();
-            float sheenW = coinW * 0.35f;
-            float sheenOffset = (float)Math.sin(timeMs * 0.003f + cx * 0.02f) * (coinW * 0.5f);
-            pa.moveTo(cx + sheenOffset - sheenW, cyBob - coinR * 0.75f);
-            pa.lineTo(cx + sheenOffset + sheenW, cyBob - coinR * 0.75f);
-            pa.lineTo(cx + sheenOffset - sheenW * 0.4f, cyBob + coinR * 0.75f);
-            pa.lineTo(cx + sheenOffset - sheenW * 1.4f, cyBob + coinR * 0.75f);
-            pa.close();
-
             p.setStyle(Paint.Style.FILL);
-            p.setColor(0x35FFFFFF);
-            c.drawPath(pa, p);
+            p.setColor(0x40FFFFFF);
+            rf.set(-coinR * 0.5f, -coinR * 0.8f, coinR * 0.1f, coinR * 0.8f);
+            c.drawRoundRect(rf, 4 * SCALE, 4 * SCALE, p);
         }
 
-        // 8. Diamond Sparkle Twinkle (✦) on corner highlight
-        if (absCos > 0.78f) {
-            float glintProgress = (absCos - 0.78f) / 0.22f;
-            float glintX = cx + coinW * 0.52f;
-            float glintY = cyBob - coinR * 0.55f;
-            float gLen = (6.5f * SCALE) * glintProgress;
-            float gThick = (1.8f * SCALE) * glintProgress;
+        c.restore();
 
-            // Horizontal & vertical diamond cross flare
+        // 4. Diamond Twinkle (✦) on Specular Corner
+        if (absCos > 0.80f) {
+            float glintProgress = (absCos - 0.80f) / 0.20f;
+            float glintX = cx + coinR * 0.48f * absCos;
+            float glintY = cyBob - coinR * 0.52f;
+            float gLen = (6.0f * SCALE) * glintProgress;
+            float gThick = (1.6f * SCALE) * glintProgress;
+
             p.setStyle(Paint.Style.FILL);
             p.setColor(0xFFFFD54F);
             pa.reset();
@@ -2218,9 +2386,8 @@ public class GameView extends View {
             pa.close();
             c.drawPath(pa, p);
 
-            // White core center
             p.setColor(0xFFFFFFFF);
-            c.drawCircle(glintX, glintY, 1.4f * SCALE * glintProgress, p);
+            c.drawCircle(glintX, glintY, 1.2f * SCALE * glintProgress, p);
         }
     }
 
@@ -2244,10 +2411,10 @@ public class GameView extends View {
         // Center star
         tp.setTypeface(tfBlack);
         tp.setColor(0xFF8D5B00);
-        tp.setTextSize(r * 1.05f);
+        tp.setTextSize(r * 1.15f);
         tp.setTextAlign(Paint.Align.CENTER);
         tp.setFakeBoldText(true);
-        c.drawText("★", cx, cy + r * 0.36f, tp);
+        c.drawText("★", cx, cy + r * 0.38f, tp);
     }
 
     private void drawThemedObstacle(Canvas c, float x, float y, float w, float h, boolean isTop, int skinId) {
@@ -2263,6 +2430,12 @@ public class GameView extends View {
                 break;
             case 3:
                 drawObstacleMagma(c, x, y, w, h, isTop, timeMs);
+                break;
+            case 4:
+                drawObstacleKoruptor(c, x, y, w, h, isTop, timeMs);
+                break;
+            case 5:
+                drawObstacleCyber(c, x, y, w, h, isTop, timeMs);
                 break;
             case 0:
             default:
@@ -2565,6 +2738,113 @@ public class GameView extends View {
         c.drawCircle(x + w * 0.5f, dripY, 3 * (1 - dripT * 0.5f) * SCALE, p);
         p.setColor(0xFFFFFF8D);
         c.drawCircle(x + w * 0.5f, dripY, 1.5f * (1 - dripT * 0.5f) * SCALE, p);
+    }
+
+    // [THEME 4] Pilar Koruptor (Aset Disita KPK)
+    private void drawObstacleKoruptor(Canvas c, float x, float y, float w, float h, boolean isTop, long timeMs) {
+        // Luxury gold & white fluted neoclassical marble column
+        p.setStyle(Paint.Style.FILL);
+        p.setShader(new LinearGradient(x, 0, x + w, 0,
+                new int[]{0xFFD4AF37, 0xFFFFF8E1, 0xFFFFE082, 0xFFB8860B},
+                new float[]{0, 0.35f, 0.70f, 1}, Shader.TileMode.CLAMP));
+        c.drawRect(x, y, x + w, y + h, p);
+        p.setShader(null);
+
+        // Fluted vertical ridges on marble
+        p.setStyle(Paint.Style.STROKE);
+        p.setColor(0x35000000);
+        p.setStrokeWidth(1.2f * SCALE);
+        for (int i = 1; i <= 5; i++) {
+            float fx = x + i * (w / 6f);
+            c.drawLine(fx, y, fx, y + h, p);
+        }
+
+        // Red & White Police Tape wrapped diagonally ("DISITA KPK")
+        float tapeStep = 55 * SCALE;
+        p.setStyle(Paint.Style.FILL);
+        for (float py = (float)Math.floor(y / tapeStep) * tapeStep; py < y + h; py += tapeStep) {
+            if (py + 16 * SCALE < y) continue;
+            // Red tape band
+            p.setColor(0xFFD50000);
+            pa.reset();
+            pa.moveTo(x, py);
+            pa.lineTo(x + w, py + 18 * SCALE);
+            pa.lineTo(x + w, py + 28 * SCALE);
+            pa.lineTo(x, py + 10 * SCALE);
+            pa.close();
+            c.drawPath(pa, p);
+
+            // White text label "DISITA KPK"
+            tp.setTypeface(tfBlack);
+            tp.setColor(Color.WHITE);
+            tp.setTextSize(7.5f * SCALE);
+            tp.setTextAlign(Paint.Align.CENTER);
+            c.save();
+            c.rotate(10, x + w / 2, py + 18 * SCALE);
+            c.drawText("DISITA KPK", x + w / 2, py + 21 * SCALE, tp);
+            c.restore();
+        }
+
+        // Luxurious Golden Corinthian Capital Cap
+        float capH = 26 * SCALE;
+        float capY = isTop ? (y + h - capH) : y;
+        p.setStyle(Paint.Style.FILL);
+        p.setShader(new LinearGradient(x - 6 * SCALE, 0, x + w + 6 * SCALE, 0,
+                new int[]{0xFFFFD54F, 0xFFFFFDE7, 0xFFFFB300, 0xFF8D5B00}, null, Shader.TileMode.CLAMP));
+        rf.set(x - 6 * SCALE, capY, x + w + 6 * SCALE, capY + capH);
+        c.drawRoundRect(rf, 6 * SCALE, 6 * SCALE, p);
+        p.setShader(null);
+
+        p.setStyle(Paint.Style.STROKE);
+        p.setColor(0xFFFF6F00);
+        p.setStrokeWidth(1.5f * SCALE);
+        c.drawRoundRect(rf, 6 * SCALE, 6 * SCALE, p);
+    }
+
+    // [THEME 5] Reaktor Cyber (Matrix Zona Hijau)
+    private void drawObstacleCyber(Canvas c, float x, float y, float w, float h, boolean isTop, long timeMs) {
+        // Dark metallic cyber obsidian conduit
+        p.setStyle(Paint.Style.FILL);
+        p.setShader(new LinearGradient(x, 0, x + w, 0,
+                new int[]{0xFF05131E, 0xFF0B253A, 0xFF071927, 0xFF02090F},
+                new float[]{0, 0.35f, 0.70f, 1}, Shader.TileMode.CLAMP));
+        c.drawRect(x, y, x + w, y + h, p);
+        p.setShader(null);
+
+        // Glowing neon circuits
+        float neonPulse = 0.7f + 0.3f * (float)Math.sin(timeMs * 0.006f);
+        p.setStyle(Paint.Style.STROKE);
+        p.setColor(Color.argb((int)(220 * neonPulse), 0, 229, 255));
+        p.setStrokeWidth(1.5f * SCALE);
+
+        float cx1 = x + w * 0.3f;
+        float cx2 = x + w * 0.7f;
+        c.drawLine(cx1, y, cx1, y + h, p);
+        c.drawLine(cx2, y, cx2, y + h, p);
+
+        // Moving data packets along circuits
+        float packetY1 = y + ((timeMs * 0.06f) % Math.max(1, h));
+        float packetY2 = y + h - ((timeMs * 0.07f) % Math.max(1, h));
+        p.setStyle(Paint.Style.FILL);
+        p.setColor(0xFFE040FB);
+        c.drawCircle(cx1, packetY1, 2.5f * SCALE, p);
+        p.setColor(0xFF00E5FF);
+        c.drawCircle(cx2, packetY2, 2.5f * SCALE, p);
+
+        // Neon Plasma Ring Cap
+        float capH = 24 * SCALE;
+        float capY = isTop ? (y + h - capH) : y;
+        p.setStyle(Paint.Style.FILL);
+        p.setShader(new LinearGradient(x - 5 * SCALE, 0, x + w + 5 * SCALE, 0,
+                new int[]{0xFF0091EA, 0xFF00E5FF, 0xFF0064B7}, null, Shader.TileMode.CLAMP));
+        rf.set(x - 5 * SCALE, capY, x + w + 5 * SCALE, capY + capH);
+        c.drawRoundRect(rf, 5 * SCALE, 5 * SCALE, p);
+        p.setShader(null);
+
+        p.setStyle(Paint.Style.STROKE);
+        p.setColor(0xFF80D8FF);
+        p.setStrokeWidth(1.4f * SCALE);
+        c.drawRoundRect(rf, 5 * SCALE, 5 * SCALE, p);
     }
 
     // ========================================================
@@ -3018,11 +3298,18 @@ public class GameView extends View {
         tp.setColor(0xFFFFB74D);
         c.drawText(String.valueOf(highScore), scoreBoxX + scoreBoxW * 0.82f, scoreBoxY + 54 * SCALE, tp);
 
-        // Total coin sub-badge
+        // Total coin sub-badge (With Vector Coin)
         tp.setTypeface(tfCondensed);
         tp.setColor(0xFFFFE082);
         tp.setTextSize(11 * SCALE);
-        c.drawText("KAS ANTI-KORUPSI: " + sawitCoins + " 🪙", scoreBoxX + scoreBoxW / 2, scoreBoxY + 79 * SCALE, tp);
+        String totalCoinsTxt = "KAS ANTI-KORUPSI: " + sawitCoins;
+        float tcW = tp.measureText(totalCoinsTxt);
+        float tcCoinR = 5.5f * SCALE;
+        float tcTotalW = tcW + tcCoinR * 2 + 5 * SCALE;
+        float tcStartX = scoreBoxX + (scoreBoxW - tcTotalW) / 2;
+        tp.setTextAlign(Paint.Align.LEFT);
+        c.drawText(totalCoinsTxt, tcStartX, scoreBoxY + 79 * SCALE, tp);
+        drawMiniVectorCoin(c, tcStartX + tcW + 3 * SCALE + tcCoinR, scoreBoxY + 75.5f * SCALE, tcCoinR);
 
         // --- BUTTON 1: COBA LAGI ---
         goRetryBtnW = cardW - 40 * SCALE;
@@ -3176,6 +3463,15 @@ public class GameView extends View {
                 break;
             case 3:
                 featherColors = new int[]{ 0xFF00E5FF, 0xFFCFD8DC, 0xFF90A4AE, 0xFFFFD600 };
+                break;
+            case 4:
+                featherColors = new int[]{ 0xFF263238, 0xFFECEFF1, 0xFF00E5FF, 0xFFD50000 };
+                break;
+            case 5:
+                featherColors = new int[]{ 0xFF00E676, 0xFFFFD600, 0xFF2979FF, 0xFFFF6D00 };
+                break;
+            case 6:
+                featherColors = new int[]{ 0xFFFF1744, 0xFFFF9100, 0xFFFFEA00, 0xFF212121 };
                 break;
             case 0:
             default:
