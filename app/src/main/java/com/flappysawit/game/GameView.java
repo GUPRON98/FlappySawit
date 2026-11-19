@@ -2775,104 +2775,75 @@ public class GameView extends View {
         sp.setStyle(Paint.Style.FILL);
         sp.setColor(Color.argb((int)(30 * auraPulse), 255, 179, 0));
         c.drawCircle(cx, cyBob, coinR * 1.55f, sp);
-        sp.setColor(Color.argb((int)(50 * auraPulse), 255, 215, 0));
+        sp.setColor(Color.argb((int)(55 * auraPulse), 255, 215, 0));
         c.drawCircle(cx, cyBob, coinR * 1.25f, sp);
 
-        // 2. Continuous Solid 3D Cylindrical Coin Edge (NO GAPS / NO HOLLOW SPACES)
-        if (absCos < 0.98f) {
+        // 2. Pure Tangent Multi-Layer Cylindrical 3D Coin Edge (100% Curvature, ZERO Rect Artifacts!)
+        if (absCos < 0.96f) {
             float edgeThick = 4.2f * SCALE * (1.0f - absCos);
             float edgeDir = (sinA >= 0 ? 1.0f : -1.0f);
             float backX = cx - edgeDir * edgeThick;
 
-            float minX = Math.min(cx, backX);
-            float maxX = Math.max(cx, backX);
-
-            // A. Draw Back Ellipse
-            c.save();
-            c.translate(backX, cyBob);
-            c.scale(absCos, 1.0f);
-            p.setStyle(Paint.Style.FILL);
-            p.setColor(0xFF7A4500); // Deep burnished bronze
-            c.drawCircle(0, 0, coinR, p);
-            c.restore();
-
-            // B. Draw Solid Cylinder Side Strip (bridges top and bottom tangents seamlessly)
-            p.setStyle(Paint.Style.FILL);
-            p.setColor(0xFF8D5200);
-            rf.set(minX, cyBob - coinR, maxX, cyBob + coinR);
-            c.drawRect(rf, p);
-
-            // C. Milled Reeding Lines on Edge (Gerigi Koin Emas Asli)
-            if (maxX - minX > 2.0f * SCALE) {
-                p.setStyle(Paint.Style.STROKE);
-                p.setStrokeWidth(1.0f * SCALE);
-                p.setColor(0xFF5E3500); // Dark milled slots
-                float step = (maxX - minX) / 3.0f;
-                for (float rx = minX + step; rx < maxX - 0.5f; rx += step) {
-                    c.drawLine(rx, cyBob - coinR * 0.92f, rx, cyBob + coinR * 0.92f, p);
-                }
-                // Highlight glint on closest edge corner
-                p.setColor(0xFFFFE082);
-                p.setStrokeWidth(0.8f * SCALE);
-                float edgeRimX = (edgeDir > 0 ? minX : maxX);
-                c.drawLine(edgeRimX, cyBob - coinR * 0.95f, edgeRimX, cyBob + coinR * 0.95f, p);
+            int slices = 7;
+            float stepX = (cx - backX) / slices;
+            for (int s = 0; s < slices; s++) {
+                float curX = backX + s * stepX;
+                c.save();
+                c.translate(curX, cyBob);
+                c.scale(absCos, 1.0f);
+                p.setStyle(Paint.Style.FILL);
+                float tS = (float)s / slices;
+                int cr = (int)(175 + 50 * tS);
+                int cg = (int)(95 + 65 * tS);
+                int cb = (int)(10 + 20 * tS);
+                p.setColor(Color.rgb(cr, cg, cb));
+                c.drawCircle(0, 0, coinR, p);
+                c.restore();
             }
         }
 
-        // 3. Minted Coin Face (Transformed cleanly via GPU scale matrix)
+        // 3. Minted Coin Face (GPU Transformed Ellipse)
         c.save();
         c.translate(cx, cyBob);
         c.scale(absCos, 1.0f);
 
-        // [A] Outer Polished Bevel Rim
+        // [A] Outer Polished Gold Rim
         p.setStyle(Paint.Style.FILL);
         p.setShader(new LinearGradient(-coinR, -coinR, coinR, coinR,
-                new int[]{0xFFFFF59D, 0xFFFFB300, 0xFFC67C00}, null, Shader.TileMode.CLAMP));
+                new int[]{0xFFFFF9C4, 0xFFFFB300, 0xFFB26A00}, null, Shader.TileMode.CLAMP));
         c.drawCircle(0, 0, coinR, p);
         p.setShader(null);
 
         // Specular Rim Bevel
         p.setStyle(Paint.Style.STROKE);
-        p.setColor(0xFFFFFDE7);
+        p.setColor(0xFFFFFFFF);
         p.setStrokeWidth(1.2f * SCALE);
         c.drawCircle(0, 0, coinR - 0.7f * SCALE, p);
 
-        // [B] Beaded Mint Ring (Lingkaran Butiran Emas Timbul)
-        p.setStyle(Paint.Style.FILL);
-        p.setColor(0xFFFFF9C4);
-        float beadR = coinR * 0.88f;
-        int numBeads = 14;
-        for (int i = 0; i < numBeads; i++) {
-            double angle = i * (Math.PI * 2 / numBeads);
-            float bx = (float)(Math.cos(angle) * beadR);
-            float by = (float)(Math.sin(angle) * beadR);
-            c.drawCircle(bx, by, 0.9f * SCALE, p);
-        }
-
-        // [C] Recessed Minted Field (The Inner Coin Body)
-        float innerR = coinR * 0.76f;
+        // [B] Inner Recessed Gold Field
+        float innerR = coinR * 0.78f;
         p.setStyle(Paint.Style.FILL);
         p.setShader(new LinearGradient(0, -innerR, 0, innerR,
                 new int[]{0xFFFFD54F, 0xFFFF9800, 0xFFE65100}, null, Shader.TileMode.CLAMP));
         c.drawCircle(0, 0, innerR, p);
         p.setShader(null);
 
-        // Inner circular milled groove
+        // Elegant Concentric Coin Groove (Clean & Sharp, No Moire Noise)
         p.setStyle(Paint.Style.STROKE);
         p.setColor(0x88FFE082);
         p.setStrokeWidth(0.9f * SCALE);
-        c.drawCircle(0, 0, innerR * 0.88f, p);
+        c.drawCircle(0, 0, innerR * 0.90f, p);
 
-        // [D] Embossed Sawit Emblem (Palm Tree / Fruit Oil Motif)
-        if (absCos > 0.16f) {
+        // [C] Embossed Theme Motif (Front: Royal Palm Tree / Back: Golden CPO Droplet)
+        if (absCos > 0.12f) {
             if (isFront) {
-                // --- FRONT SIDE: POHON KELAPA SAWIT EMAS (Golden Palm Tree) ---
+                // --- FRONT SIDE: POHON KELAPA SAWIT EMAS ---
                 float trunkTop = -innerR * 0.05f;
-                float trunkBottom = innerR * 0.65f;
+                float trunkBottom = innerR * 0.62f;
 
-                // 1. Palm Trunk with Relief Shadow
+                // 1. Palm Trunk Relief & Face
                 p.setStyle(Paint.Style.FILL);
-                p.setColor(0xFF7A3900); // Relief shadow
+                p.setColor(0xFF6D3300); // Dark relief shadow
                 pa.reset();
                 pa.moveTo(-2.4f * SCALE, trunkBottom + 0.8f * SCALE);
                 pa.lineTo(-1.6f * SCALE, trunkTop + 0.8f * SCALE);
@@ -2881,7 +2852,7 @@ public class GameView extends View {
                 pa.close();
                 c.drawPath(pa, p);
 
-                p.setColor(0xFFFFF8E1); // Polished gold trunk face
+                p.setColor(0xFFFFFDE7); // Polished gold trunk face
                 pa.reset();
                 pa.moveTo(-2.4f * SCALE, trunkBottom);
                 pa.lineTo(-1.6f * SCALE, trunkTop);
@@ -2897,24 +2868,21 @@ public class GameView extends View {
                 c.drawLine(-2.0f * SCALE, trunkBottom * 0.4f, 2.0f * SCALE, trunkBottom * 0.4f, p);
                 c.drawLine(-2.2f * SCALE, trunkBottom * 0.7f, 2.2f * SCALE, trunkBottom * 0.7f, p);
 
-                // 2. Arching Palm Fronds (Daun Pelepah Sawit)
+                // 2. Arching Royal Palm Fronds (5 High-Contrast Elegant Fronds)
                 p.setStyle(Paint.Style.STROKE);
                 p.setStrokeCap(Paint.Cap.ROUND);
 
-                // Frond coordinates: (targetX, targetY, ctrlX, ctrlY)
                 float[][] fronds = {
                     {0, -innerR * 0.65f, 0, -innerR * 0.35f},                      // Center spear
-                    {-innerR * 0.42f, -innerR * 0.48f, -innerR * 0.20f, -innerR * 0.45f}, // Top Left
-                    {innerR * 0.42f, -innerR * 0.48f, innerR * 0.20f, -innerR * 0.45f},   // Top Right
-                    {-innerR * 0.52f, -innerR * 0.16f, -innerR * 0.30f, -innerR * 0.28f}, // Mid Left
-                    {innerR * 0.52f, -innerR * 0.16f, innerR * 0.30f, -innerR * 0.28f},   // Mid Right
-                    {-innerR * 0.44f, innerR * 0.12f, -innerR * 0.25f, innerR * 0.02f},   // Low Left
-                    {innerR * 0.44f, innerR * 0.12f, innerR * 0.25f, innerR * 0.02f}     // Low Right
+                    {-innerR * 0.45f, -innerR * 0.45f, -innerR * 0.22f, -innerR * 0.42f}, // Top Left
+                    {innerR * 0.45f, -innerR * 0.45f, innerR * 0.22f, -innerR * 0.42f},   // Top Right
+                    {-innerR * 0.50f, -innerR * 0.08f, -innerR * 0.28f, -innerR * 0.20f}, // Low Left
+                    {innerR * 0.50f, -innerR * 0.08f, innerR * 0.28f, -innerR * 0.20f}    // Low Right
                 };
 
-                // Draw frond shadows then highlights
-                p.setStrokeWidth(2.0f * SCALE);
-                p.setColor(0xFF6D3300);
+                // Shadow
+                p.setStrokeWidth(2.2f * SCALE);
+                p.setColor(0xFF5D2800);
                 for (float[] f : fronds) {
                     pa.reset();
                     pa.moveTo(0, trunkTop + 0.8f * SCALE);
@@ -2922,6 +2890,7 @@ public class GameView extends View {
                     c.drawPath(pa, p);
                 }
 
+                // Face Highlight
                 p.setStrokeWidth(1.6f * SCALE);
                 p.setColor(0xFFFFFDE7);
                 for (float[] f : fronds) {
@@ -2932,79 +2901,80 @@ public class GameView extends View {
                 }
                 p.setStrokeCap(Paint.Cap.BUTT);
 
-                // 3. Tandan Buah Sawit (Ripe Palm Fruit Cluster at Crown Base)
+                // 3. Tandan Buah Sawit (TBS Ripe Clusters)
                 p.setStyle(Paint.Style.FILL);
                 p.setColor(0xFFBF360C); // Deep rust shadow
                 c.drawCircle(-2.2f * SCALE, trunkTop + 1.2f * SCALE, 1.8f * SCALE, p);
                 c.drawCircle(2.2f * SCALE, trunkTop + 1.2f * SCALE, 1.8f * SCALE, p);
-                c.drawCircle(0, trunkTop + 2.5f * SCALE, 1.8f * SCALE, p);
 
                 p.setColor(0xFFFF9100); // Ripe golden oil fruit
                 c.drawCircle(-2.2f * SCALE, trunkTop + 0.6f * SCALE, 1.5f * SCALE, p);
                 c.drawCircle(2.2f * SCALE, trunkTop + 0.6f * SCALE, 1.5f * SCALE, p);
-                c.drawCircle(0, trunkTop + 2.0f * SCALE, 1.5f * SCALE, p);
 
-                p.setColor(0xFFFFF59D); // Fruit glint
+                p.setColor(0xFFFFF9C4); // Fruit glint
                 c.drawCircle(-2.5f * SCALE, trunkTop + 0.2f * SCALE, 0.6f * SCALE, p);
                 c.drawCircle(1.9f * SCALE, trunkTop + 0.2f * SCALE, 0.6f * SCALE, p);
             } else {
-                // --- BACK SIDE: TETESAN EMAS CPO & EMBLEM TBS ---
-                // Central Golden Oil Droplet
+                // --- BACK SIDE: TETESAN EMAS CPO (Pure Golden Oil Tear) ---
                 p.setStyle(Paint.Style.FILL);
-                p.setColor(0xFF7A3900); // Drop shadow
+                p.setColor(0xFF6D3300); // Tear shadow
                 pa.reset();
-                pa.moveTo(0, -innerR * 0.45f + 0.8f * SCALE);
-                pa.quadTo(-innerR * 0.32f, innerR * 0.20f + 0.8f * SCALE, 0, innerR * 0.45f + 0.8f * SCALE);
-                pa.quadTo(innerR * 0.32f, innerR * 0.20f + 0.8f * SCALE, 0, -innerR * 0.45f + 0.8f * SCALE);
+                pa.moveTo(0, -innerR * 0.50f + 0.8f * SCALE);
+                pa.quadTo(-innerR * 0.35f, innerR * 0.15f + 0.8f * SCALE, 0, innerR * 0.50f + 0.8f * SCALE);
+                pa.quadTo(innerR * 0.35f, innerR * 0.15f + 0.8f * SCALE, 0, -innerR * 0.50f + 0.8f * SCALE);
                 pa.close();
                 c.drawPath(pa, p);
 
-                p.setColor(0xFFFFFDE7); // Brilliant drop face
+                p.setColor(0xFFFFFDE7); // Outer tear highlight
                 pa.reset();
-                pa.moveTo(0, -innerR * 0.45f);
-                pa.quadTo(-innerR * 0.32f, innerR * 0.20f, 0, innerR * 0.45f);
-                pa.quadTo(innerR * 0.32f, innerR * 0.20f, 0, -innerR * 0.45f);
+                pa.moveTo(0, -innerR * 0.50f);
+                pa.quadTo(-innerR * 0.35f, innerR * 0.15f, 0, innerR * 0.50f);
+                pa.quadTo(innerR * 0.35f, innerR * 0.15f, 0, -innerR * 0.50f);
                 pa.close();
                 c.drawPath(pa, p);
 
-                // Inner Drop Amber Core
+                // Inner Amber Glowing Core
                 p.setColor(0xFFFF9800);
                 pa.reset();
-                pa.moveTo(0, -innerR * 0.32f);
-                pa.quadTo(-innerR * 0.20f, innerR * 0.16f, 0, innerR * 0.35f);
-                pa.quadTo(innerR * 0.20f, innerR * 0.16f, 0, -innerR * 0.32f);
+                pa.moveTo(0, -innerR * 0.35f);
+                pa.quadTo(-innerR * 0.22f, innerR * 0.12f, 0, innerR * 0.38f);
+                pa.quadTo(innerR * 0.22f, innerR * 0.12f, 0, -innerR * 0.35f);
                 pa.close();
                 c.drawPath(pa, p);
 
-                // Curved Palm Laurel Leaves around droplet
+                // Central Radiant Star (✦) instead of broken tiny text!
+                p.setColor(0xFFFFFDE7);
+                float starR = innerR * 0.18f;
+                pa.reset();
+                pa.moveTo(0, -starR);
+                pa.quadTo(0, 0, starR, 0);
+                pa.quadTo(0, 0, 0, starR);
+                pa.quadTo(0, 0, -starR, 0);
+                pa.quadTo(0, 0, 0, -starR);
+                pa.close();
+                c.drawPath(pa, p);
+
+                // Laurel Palm Arcs
                 p.setStyle(Paint.Style.STROKE);
                 p.setStrokeWidth(1.4f * SCALE);
                 p.setColor(0xFFFFF9C4);
                 p.setStrokeCap(Paint.Cap.ROUND);
                 pa.reset();
-                pa.moveTo(-innerR * 0.46f, innerR * 0.35f);
-                pa.quadTo(-innerR * 0.55f, 0, -innerR * 0.32f, -innerR * 0.35f);
+                pa.moveTo(-innerR * 0.48f, innerR * 0.35f);
+                pa.quadTo(-innerR * 0.58f, 0, -innerR * 0.35f, -innerR * 0.38f);
                 c.drawPath(pa, p);
                 pa.reset();
-                pa.moveTo(innerR * 0.46f, innerR * 0.35f);
-                pa.quadTo(innerR * 0.55f, 0, innerR * 0.32f, -innerR * 0.35f);
+                pa.moveTo(innerR * 0.48f, innerR * 0.35f);
+                pa.quadTo(innerR * 0.58f, 0, innerR * 0.35f, -innerR * 0.38f);
                 c.drawPath(pa, p);
                 p.setStrokeCap(Paint.Cap.BUTT);
-
-                // "CPO" / "SAWIT" Satirical Stamp Text
-                tp.setTypeface(tfBlack);
-                tp.setColor(0xFF7A3900);
-                tp.setTextSize(innerR * 0.28f);
-                tp.setTextAlign(Paint.Align.CENTER);
-                tp.setFakeBoldText(true);
-                c.drawText("SAWIT", 0, innerR * 0.65f, tp);
             }
         }
 
-        // [E] Anisotropic Curved Specular Gleam Arc (Natural metallic sweep)
+        // [D] Metallic Crescent Specular Gleam Arc
         p.setStyle(Paint.Style.STROKE);
         p.setStrokeWidth(1.8f * SCALE);
-        p.setColor(0x55FFFFFF);
+        p.setColor(0x60FFFFFF);
         rf.set(-innerR * 0.88f, -innerR * 0.88f, innerR * 0.88f, innerR * 0.88f);
         c.drawArc(rf, 200, 75, false, p);
 
@@ -3045,13 +3015,13 @@ public class GameView extends View {
         // Outer Polished Gold Rim
         p.setStyle(Paint.Style.FILL);
         p.setShader(new LinearGradient(cx - r, cy - r, cx + r, cy + r,
-                new int[]{0xFFFFF59D, 0xFFFFB300, 0xFFC67C00}, null, Shader.TileMode.CLAMP));
+                new int[]{0xFFFFF9C4, 0xFFFFB300, 0xFFB26A00}, null, Shader.TileMode.CLAMP));
         c.drawCircle(cx, cy, r, p);
         p.setShader(null);
 
         // Specular Rim Highlight
         p.setStyle(Paint.Style.STROKE);
-        p.setColor(0xFFFFFDE7);
+        p.setColor(0xFFFFFFFF);
         p.setStrokeWidth(0.8f * SCALE);
         c.drawCircle(cx, cy, r - 0.5f * SCALE, p);
 
@@ -3072,7 +3042,7 @@ public class GameView extends View {
         c.drawLine(cx, trunkTop, cx, trunkBottom, p);
 
         // Palm Fronds (5 sharp arched fronds)
-        p.setStrokeWidth(0.9f * SCALE);
+        p.setStrokeWidth(1.0f * SCALE);
         p.setColor(0xFFFFFDE7);
         p.setStrokeCap(Paint.Cap.ROUND);
         // Center spear
@@ -3087,7 +3057,7 @@ public class GameView extends View {
         // Tandan Buah Segar (TBS mini orange dot)
         p.setStyle(Paint.Style.FILL);
         p.setColor(0xFFFF3D00);
-        c.drawCircle(cx, trunkTop + 0.8f * SCALE, 0.9f * SCALE, p);
+        c.drawCircle(cx, trunkTop + 0.8f * SCALE, 1.0f * SCALE, p);
 
         // Top Specular Crescent Arc
         p.setStyle(Paint.Style.STROKE);
