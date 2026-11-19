@@ -1020,46 +1020,110 @@ public class GameView extends View {
         tp.setFakeBoldText(false);
         c.drawText("Dana Sitaan Bersih", rightX + cardW / 2, dashY + 44 * SCALE, tp);
 
-        // 4. MAIN ACTION BUTTON ("▶ SERGAP KEBUN (MULAI)")
+        // 4. MAIN ACTION BUTTON ("▶ SERGAP KEBUN" - TACTICAL ANTI-CORRUPTION RAID)
         float pulse = 0.90f + (float)Math.sin(timeMs * 0.005f) * 0.10f;
+        float btnR = 20 * SCALE;
 
+        // [A] Physically-Based Multi-Layer Ambient Occlusion & Ground Drop Shadow
+        // 1. Far diffused ambient ground shadow
         sp.setStyle(Paint.Style.FILL);
-        sp.setColor(Color.argb((int)(60 * pulse), 255, 80, 0));
-        rf.set(playBtnX - 5 * SCALE, playBtnY - 5 * SCALE, playBtnX + playBtnW + 5 * SCALE, playBtnY + playBtnH + 5 * SCALE);
-        c.drawRoundRect(rf, 28 * SCALE, 28 * SCALE, sp);
+        sp.setColor(0x28000000);
+        rf.set(playBtnX - 3 * SCALE, playBtnY + 6 * SCALE, playBtnX + playBtnW + 3 * SCALE, playBtnY + playBtnH + 11 * SCALE);
+        c.drawRoundRect(rf, btnR + 4 * SCALE, btnR + 4 * SCALE, sp);
 
+        // 2. Mid elevation shadow
+        sp.setColor(0x4A000000);
+        rf.set(playBtnX - 1 * SCALE, playBtnY + 4 * SCALE, playBtnX + playBtnW + 1 * SCALE, playBtnY + playBtnH + 7.5f * SCALE);
+        c.drawRoundRect(rf, btnR + 2 * SCALE, btnR + 2 * SCALE, sp);
+
+        // 3. Sharp contact occlusion shadow
+        sp.setColor(0x80000000);
+        rf.set(playBtnX, playBtnY + 2.5f * SCALE, playBtnX + playBtnW, playBtnY + playBtnH + 5 * SCALE);
+        c.drawRoundRect(rf, btnR, btnR, sp);
+
+        // 4. Atmospheric Peatland Fire Underglow (Subtle breathing warm aura under button)
+        int glowAlpha = (int)(32 * pulse);
+        sp.setColor(Color.argb(glowAlpha, 255, 60, 0));
+        rf.set(playBtnX + 8 * SCALE, playBtnY + 5 * SCALE, playBtnX + playBtnW - 8 * SCALE, playBtnY + playBtnH + 10 * SCALE);
+        c.drawRoundRect(rf, btnR + 4 * SCALE, btnR + 4 * SCALE, sp);
+
+        // [B] Tactical Heavy Base Chassis (Solid Peat Iron Foundation)
         p.setStyle(Paint.Style.FILL);
-        p.setColor(0xFF6B0E0E);
+        p.setColor(0xFF140803); // Charred peat iron
         rf.set(playBtnX, playBtnY + 4 * SCALE, playBtnX + playBtnW, playBtnY + playBtnH + 4 * SCALE);
-        c.drawRoundRect(rf, 26 * SCALE, 26 * SCALE, p);
+        c.drawRoundRect(rf, btnR, btnR, p);
 
+        // Base chassis bronze rim bevel
+        p.setStyle(Paint.Style.STROKE);
+        p.setColor(0xFF4A1A0C);
+        p.setStrokeWidth(1.2f * SCALE);
+        c.drawRoundRect(rf, btnR, btnR, p);
+
+        // [C] Button Face Plate (Emergency Raid Tactical Crimson & Peat Flame Gradient)
+        p.setStyle(Paint.Style.FILL);
         p.setShader(new LinearGradient(playBtnX, playBtnY, playBtnX, playBtnY + playBtnH,
-                new int[]{0xFFFF9100, 0xFFFF3D00, 0xFFD50000}, null, Shader.TileMode.CLAMP));
+                new int[]{0xFFFF7A00, 0xFFE53935, 0xFF9E0B0B, 0xFF520303},
+                new float[]{0.0f, 0.32f, 0.76f, 1.0f}, Shader.TileMode.CLAMP));
         rf.set(playBtnX, playBtnY, playBtnX + playBtnW, playBtnY + playBtnH);
-        c.drawRoundRect(rf, 26 * SCALE, 26 * SCALE, p);
+        c.drawRoundRect(rf, btnR, btnR, p);
         p.setShader(null);
 
-        // Gloss highlight line on button
+        // [D] Inner Chamfer Specular Highlight (Subtle metallic top rim sheen)
         p.setStyle(Paint.Style.STROKE);
-        p.setColor(0x88FFFFFF);
-        p.setStrokeWidth(1.6f * SCALE);
-        rf.set(playBtnX + 16 * SCALE, playBtnY + 3 * SCALE, playBtnX + playBtnW - 16 * SCALE, playBtnY + 10 * SCALE);
-        c.drawRoundRect(rf, 5 * SCALE, 5 * SCALE, p);
+        p.setStrokeWidth(1.4f * SCALE);
+        p.setShader(new LinearGradient(playBtnX, playBtnY, playBtnX, playBtnY + playBtnH * 0.40f,
+                new int[]{0xAAFFFFFF, 0x10FFFFFF}, null, Shader.TileMode.CLAMP));
+        rf.set(playBtnX + 1.5f * SCALE, playBtnY + 1.2f * SCALE, playBtnX + playBtnW - 1.5f * SCALE, playBtnY + playBtnH - 1.2f * SCALE);
+        c.drawRoundRect(rf, btnR - 1.5f * SCALE, btnR - 1.5f * SCALE, p);
+        p.setShader(null);
 
+        // [E] Outer Tactical Border Frame with Pulsing Amber Neon Edge
+        p.setStyle(Paint.Style.STROKE);
+        p.setStrokeWidth(1.6f * SCALE);
+        int borderAlpha = Math.min(255, (int)(180 + 75 * pulse));
+        p.setColor(Color.argb(borderAlpha, 255, 179, 0)); // Vibrant tactical amber border
+        rf.set(playBtnX, playBtnY, playBtnX + playBtnW, playBtnY + playBtnH);
+        c.drawRoundRect(rf, btnR, btnR, p);
+
+        // [F] Flank Tactical Chevron Grips (Field Equipment Aesthetic)
+        p.setStyle(Paint.Style.STROKE);
+        p.setStrokeWidth(2.0f * SCALE);
+        p.setStrokeCap(Paint.Cap.ROUND);
+        p.setColor(0x88FFD54F);
+
+        float leftGripX = playBtnX + 16 * SCALE;
+        float gripCenterY = playBtnY + playBtnH / 2;
+        // Left chevron grips »
+        c.drawLine(leftGripX - 3 * SCALE, gripCenterY - 6 * SCALE, leftGripX + 2 * SCALE, gripCenterY, p);
+        c.drawLine(leftGripX + 2 * SCALE, gripCenterY, leftGripX - 3 * SCALE, gripCenterY + 6 * SCALE, p);
+        c.drawLine(leftGripX + 3 * SCALE, gripCenterY - 6 * SCALE, leftGripX + 8 * SCALE, gripCenterY, p);
+        c.drawLine(leftGripX + 8 * SCALE, gripCenterY, leftGripX + 3 * SCALE, gripCenterY + 6 * SCALE, p);
+
+        // Right chevron grips «
+        float rightGripX = playBtnX + playBtnW - 16 * SCALE;
+        c.drawLine(rightGripX + 3 * SCALE, gripCenterY - 6 * SCALE, rightGripX - 2 * SCALE, gripCenterY, p);
+        c.drawLine(rightGripX - 2 * SCALE, gripCenterY, rightGripX + 3 * SCALE, gripCenterY + 6 * SCALE, p);
+        c.drawLine(rightGripX - 3 * SCALE, gripCenterY - 6 * SCALE, rightGripX - 8 * SCALE, gripCenterY, p);
+        c.drawLine(rightGripX - 8 * SCALE, gripCenterY, rightGripX - 3 * SCALE, gripCenterY + 6 * SCALE, p);
+        p.setStrokeCap(Paint.Cap.BUTT);
+
+        // [G] Tactical Typography
         tp.setTypeface(tfBlack);
         tp.setColor(Color.WHITE);
         tp.setTextSize(19 * SCALE);
         tp.setFakeBoldText(true);
         tp.setTextAlign(Paint.Align.CENTER);
-        tp.setShadowLayer(4 * SCALE, 0, 2 * SCALE, 0xFF000000);
-        c.drawText("▶ SERGAP KEBUN (MULAI)", W / 2, playBtnY + 28 * SCALE, tp);
+        tp.setShadowLayer(5 * SCALE, 0, 2.5f * SCALE, 0xDD000000);
+        c.drawText("▶ SERGAP KEBUN", W / 2, playBtnY + 28 * SCALE, tp);
         tp.clearShadowLayer();
 
         tp.setTypeface(tfCondensed);
-        tp.setColor(0xFFFFE0B2);
+        tp.setColor(0xFFFFE082); // Anti-corruption gold tag
         tp.setTextSize(9.5f * SCALE);
-        tp.setFakeBoldText(false);
-        c.drawText("Sita Aset & Pulihkan Rimba Rakyat", W / 2, playBtnY + 42 * SCALE, tp);
+        tp.setFakeBoldText(true);
+        tp.setShadowLayer(3 * SCALE, 0, 1.5f * SCALE, 0xCC000000);
+        c.drawText("⚡ OPERASI SITA ASET MAFIA SAWIT ⚡", W / 2, playBtnY + 42.5f * SCALE, tp);
+        tp.clearShadowLayer();
 
         // 5. SECONDARY CONTROL ROW ([ 🎭 WARDROBE & SKIN ] and [ ⚙ PENGATURAN ])
         // [A] Skin Selection Button
