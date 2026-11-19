@@ -1184,8 +1184,10 @@ public class GameView extends View {
         tp.setColor(0xFFF8BBD0);
         tp.setTextSize(13.5f * SCALE);
         tp.setFakeBoldText(true);
+        tp.setTextAlign(Paint.Align.CENTER);
         tp.setShadowLayer(3 * SCALE, 0, 2 * SCALE, 0xFF000000);
-        c.drawText("🎭 WARDROBE", skinBtnX + skinBtnW / 2, skinBtnY + skinBtnH * 0.64f, tp);
+        float skinTextY = skinBtnY + skinBtnH / 2 - (tp.descent() + tp.ascent()) / 2;
+        c.drawText("🎭 WARDROBE", skinBtnX + skinBtnW / 2, skinTextY, tp);
         tp.clearShadowLayer();
 
         // [B] Settings Button
@@ -1209,8 +1211,10 @@ public class GameView extends View {
         tp.setColor(0xFFFFE0B2);
         tp.setTextSize(13.5f * SCALE);
         tp.setFakeBoldText(true);
+        tp.setTextAlign(Paint.Align.CENTER);
         tp.setShadowLayer(3 * SCALE, 0, 2 * SCALE, 0xFF000000);
-        c.drawText("⚙ PENGATURAN", setBtnX + setBtnW / 2, setBtnY + skinBtnH * 0.64f, tp);
+        float setTextY = setBtnY + setBtnH / 2 - (tp.descent() + tp.ascent()) / 2;
+        c.drawText("⚙ PENGATURAN", setBtnX + setBtnW / 2, setTextY, tp);
         tp.clearShadowLayer();
     }
 
@@ -4346,6 +4350,7 @@ public class GameView extends View {
         tp.setColor(Color.WHITE);
         tp.setTextSize(18 * SCALE);
         tp.setFakeBoldText(true);
+        tp.setTextAlign(Paint.Align.CENTER);
         tp.setShadowLayer(4 * SCALE, 0, 2 * SCALE, 0xFF000000);
         float retryTextY = goRetryBtnY + goRetryBtnH / 2 - (tp.descent() + tp.ascent()) / 2;
         c.drawText("COBA LAGI", W / 2, retryTextY, tp);
