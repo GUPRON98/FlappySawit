@@ -96,6 +96,16 @@ public class GameView extends View {
         "Pilar batu obsidian hitam kristal dengan urat lahar magma membara."
     };
 
+    // ========== ECONOMY & PROGRESSION SYSTEM ==========
+    private int sawitCoins = 0;
+    private int runCoins = 0;
+    private static final int[] SKIN_COSTS = { 0, 20, 50, 100 };
+    private static final int[] PIPE_SKIN_COSTS = { 0, 25, 60, 120 };
+
+    // Cached full-screen shaders to prevent GC spikes and maintain 60 FPS
+    private LinearGradient skyShader;
+    private LinearGradient groundShader;
+
     // ========== DIMENSIONS & SCALING ==========
     private float W = 720, H = 1280;
     private float SCALE = 2.0f;
@@ -111,10 +121,13 @@ public class GameView extends View {
     private static class Pipe {
         float x, topH, gap;
         boolean passed;
+        boolean coinCollected;
         Pipe(float x, float t, float g) {
             this.x = x;
             topH = t;
             gap = g;
+            this.passed = false;
+            this.coinCollected = false;
         }
     }
     private ArrayList<Pipe> pipes = new ArrayList<>();
@@ -197,6 +210,7 @@ public class GameView extends View {
         previewSkin = currentSkin;
         currentPipeSkin = prefs.getInt("selected_pipe_skin", 0);
         previewPipeSkin = currentPipeSkin;
+        sawitCoins = prefs.getInt("sawit_coins", 0);
 
         try {
             vibrator = (Vibrator) context.getSystemService(Context.VIBRATOR_SERVICE);
@@ -235,6 +249,28 @@ public class GameView extends View {
             .putInt("selected_skin", currentSkin)
             .putInt("selected_pipe_skin", currentPipeSkin)
             .apply();
+    }
+
+    private boolean isSkinUnlocked(int id) {
+        if (id == 0) return true; // Default free skin
+        return prefs.getBoolean("skin_unlocked_" + id, false);
+    }
+
+    private boolean isPipeSkinUnlocked(int id) {
+        if (id == 0) return true; // Default free skin
+        return prefs.getBoolean("pipe_skin_unlocked_" + id, false);
+    }
+
+    private void unlockSkin(int id) {
+        prefs.edit().putBoolean("skin_unlocked_" + id, true).apply();
+    }
+
+    private void unlockPipeSkin(int id) {
+        prefs.edit().putBoolean("pipe_skin_unlocked_" + id, true).apply();
+    }
+
+    private void saveCoins() {
+        prefs.edit().putInt("sawit_coins", sawitCoins).apply();
     }
 
     @Override
@@ -276,21 +312,29 @@ public class GameView extends View {
 
         // Calculate Game Over Button coordinates
         float goCardW = Math.min(320 * SCALE, W * 0.88f);
-        float goCardH = 312 * SCALE;
+        float goCardH = 328 * SCALE;
         float goCardX = (W - goCardW) / 2;
         float goCardY = safeTop + (playableH - goCardH) * 0.35f;
-        float goScoreBoxY = goCardY + 88 * SCALE;
-        float goScoreBoxH = 78 * SCALE;
+        float goScoreBoxY = goCardY + 86 * SCALE;
+        float goScoreBoxH = 92 * SCALE;
 
         goRetryBtnW = goCardW - 40 * SCALE;
         goRetryBtnH = 46 * SCALE;
         goRetryBtnX = goCardX + 20 * SCALE;
-        goRetryBtnY = goScoreBoxY + goScoreBoxH + 16 * SCALE;
+        goRetryBtnY = goScoreBoxY + goScoreBoxH + 14 * SCALE;
 
         goMenuBtnW = goRetryBtnW;
         goMenuBtnH = 46 * SCALE;
         goMenuBtnX = goRetryBtnX;
-        goMenuBtnY = goRetryBtnY + goRetryBtnH + 12 * SCALE;
+        goMenuBtnY = goRetryBtnY + goRetryBtnH + 10 * SCALE;
+
+        // Cache static full-screen shaders
+        skyShader = new LinearGradient(0, 0, 0, H,
+                new int[]{0xFF1C0502, 0xFF4A0E02, 0xFF8A1E00, 0xFFD84315, 0xFFFF7043, 0xFF5A1604},
+                new float[]{0, 0.18f, 0.38f, 0.62f, 0.82f, 1.0f}, Shader.TileMode.CLAMP);
+        groundShader = new LinearGradient(0, H - groundH, 0, H,
+                new int[]{0xFF5A2A14, 0xFF421C0B, 0xFF321406, 0xFF240D04},
+                new float[]{0.0f, 0.25f, 0.65f, 1.0f}, Shader.TileMode.CLAMP);
 
         initEnvironment();
         resetBird();
@@ -465,8 +509,8 @@ public class GameView extends View {
         drawParallaxForest(c, farTrees, 0.2f, dt);
         drawParallaxForest(c, midTrees, 0.45f, dt);
         if (graphicsLevel >= 1) drawEmbers(c);
-        drawPipes(c);
         if (graphicsLevel >= 2) drawParallaxForest(c, nearTrees, 0.7f, dt);
+        drawPipes(c);
         drawGround(c);
         drawGroundDropShadow(c);
         drawParticles(c);
@@ -580,9 +624,33 @@ public class GameView extends View {
         for (int i = pipes.size() - 1; i >= 0; i--) {
             Pipe pp = pipes.get(i);
             pp.x -= worldSpeed * SCALE * dt;
+
+            // Direct coin collection in gap
+            if (!pp.coinCollected) {
+                float coinCenterX = pp.x + pw / 2;
+                float coinCenterY = pp.topH + pp.gap / 2;
+                float coinRadius = 18 * SCALE;
+                if (birdR > coinCenterX - coinRadius && birdL < coinCenterX + coinRadius
+                    && birdB > coinCenterY - coinRadius && birdT < coinCenterY + coinRadius) {
+                    pp.coinCollected = true;
+                    sawitCoins++;
+                    runCoins++;
+                    saveCoins();
+                    spawnCoinSparkles(coinCenterX, coinCenterY);
+                    playScoreSound();
+                }
+            }
+
             if (!pp.passed && pp.x + pw < birdX) {
                 pp.passed = true;
                 score++;
+                if (!pp.coinCollected) {
+                    pp.coinCollected = true;
+                    sawitCoins++;
+                    runCoins++;
+                    saveCoins();
+                    spawnCoinSparkles(pp.x + pw / 2, pp.topH + pp.gap / 2);
+                }
                 playScoreSound();
                 if (score % 6 == 0 && worldSpeed < 260) worldSpeed += 12;
             }
@@ -704,6 +772,26 @@ public class GameView extends View {
         tp.setTextSize(13 * SCALE);
         tp.setFakeBoldText(true);
         c.drawText(highScore > 0 ? "🏆 REKOR TERTINGGI: " + highScore : "🏆 SKOR TERBAIK: 0", W / 2, trophyY + 20 * SCALE, tp);
+
+        // Coin Balance Pill
+        float coinBalY = trophyY + trophyH + 7 * SCALE;
+        float coinBalW = Math.min(170 * SCALE, W * 0.52f);
+        float coinBalX = (W - coinBalW) / 2;
+        p.setStyle(Paint.Style.FILL);
+        p.setColor(0x75000000);
+        rf.set(coinBalX, coinBalY, coinBalX + coinBalW, coinBalY + 26 * SCALE);
+        c.drawRoundRect(rf, 13 * SCALE, 13 * SCALE, p);
+
+        p.setStyle(Paint.Style.STROKE);
+        p.setColor(0x99FFB300);
+        p.setStrokeWidth(1.2f * SCALE);
+        c.drawRoundRect(rf, 13 * SCALE, 13 * SCALE, p);
+
+        tp.setTypeface(tfCondensed);
+        tp.setColor(0xFFFFD54F);
+        tp.setTextSize(12.5f * SCALE);
+        tp.setTextAlign(Paint.Align.CENTER);
+        c.drawText("🪙 KOIN SAWIT: " + sawitCoins, W / 2, coinBalY + 18 * SCALE, tp);
 
         // 4. MAIN ACTION BUTTON ("▶ MULAI TERBANG")
         float pulse = 0.90f + (float)Math.sin(timeMs * 0.005f) * 0.10f;
@@ -842,11 +930,30 @@ public class GameView extends View {
         p.setStrokeWidth(2 * SCALE);
         c.drawRoundRect(rf, 24 * SCALE, 24 * SCALE, p);
 
-        // 1. Header Title
-        draw3DText(c, "WARDROBE & TEMA", W / 2, cardY + 28 * SCALE, 19 * SCALE, tfBlack, 0xFFFFF176, 0xFFFF5722, 0xFF880E4F);
+        // 1. Header Title & Coin Badge
+        draw3DText(c, "WARDROBE & TEMA", cardX + cardW * 0.40f, cardY + 28 * SCALE, 18 * SCALE, tfBlack, 0xFFFFF176, 0xFFFF5722, 0xFF880E4F);
+
+        float coinBadgeW = 86 * SCALE;
+        float coinBadgeH = 24 * SCALE;
+        float coinBadgeX = cardX + cardW - coinBadgeW - 14 * SCALE;
+        float coinBadgeY = cardY + 16 * SCALE;
+        p.setStyle(Paint.Style.FILL);
+        p.setColor(0x75000000);
+        rf.set(coinBadgeX, coinBadgeY, coinBadgeX + coinBadgeW, coinBadgeY + coinBadgeH);
+        c.drawRoundRect(rf, 12 * SCALE, 12 * SCALE, p);
+        p.setStyle(Paint.Style.STROKE);
+        p.setColor(0xAAFFD54F);
+        p.setStrokeWidth(1.2f * SCALE);
+        c.drawRoundRect(rf, 12 * SCALE, 12 * SCALE, p);
+
+        tp.setTypeface(tfBlack);
+        tp.setColor(0xFFFFD54F);
+        tp.setTextSize(12 * SCALE);
+        tp.setTextAlign(Paint.Align.CENTER);
+        c.drawText("🪙 " + sawitCoins, coinBadgeX + coinBadgeW / 2, coinBadgeY + 16.5f * SCALE, tp);
 
         // 2. Tabs Row
-        float tabRowY = cardY + 40 * SCALE;
+        float tabRowY = cardY + 44 * SCALE;
         float tabH = 32 * SCALE;
         float tabGap = 8 * SCALE;
         float tabW = (cardW - 36 * SCALE - tabGap) / 2;
@@ -918,6 +1025,27 @@ public class GameView extends View {
             drawPipePreview(c, stageCenterX, stageCenterY, previewPipeSkin);
         }
 
+        boolean isUnlocked = (skinTab == 0) ? isSkinUnlocked(previewSkin) : isPipeSkinUnlocked(previewPipeSkin);
+        int cost = (skinTab == 0) ? SKIN_COSTS[previewSkin] : PIPE_SKIN_COSTS[previewPipeSkin];
+
+        // Lock badge overlay on preview stage if not unlocked
+        if (!isUnlocked) {
+            p.setStyle(Paint.Style.FILL);
+            p.setColor(0x88000000);
+            c.drawCircle(stageCenterX, stageCenterY, 36 * SCALE, p);
+
+            p.setStyle(Paint.Style.STROKE);
+            p.setColor(0xFFFFD54F);
+            p.setStrokeWidth(1.6f * SCALE);
+            c.drawCircle(stageCenterX, stageCenterY, 36 * SCALE, p);
+
+            tp.setTypeface(tfBlack);
+            tp.setColor(0xFFFFD54F);
+            tp.setTextSize(22 * SCALE);
+            tp.setTextAlign(Paint.Align.CENTER);
+            c.drawText("🔒", stageCenterX, stageCenterY + 8 * SCALE, tp);
+        }
+
         // Left Navigation Arrow [◀]
         float arrowSize = 36 * SCALE;
         float arrowY = stageCenterY - arrowSize / 2;
@@ -978,15 +1106,25 @@ public class GameView extends View {
         c.drawText(mainName, W / 2, infoBoxY + 22 * SCALE, tp);
         tp.clearShadowLayer();
 
-        // 6. Description Text with Auto-Wrapping
+        // 6. Unlock price badge & Description Text
+        float descOffsetY = 40 * SCALE;
+        if (!isUnlocked) {
+            tp.setTypeface(tfCondensed);
+            tp.setColor(sawitCoins >= cost ? 0xFF81C784 : 0xFFFF8A80);
+            tp.setTextSize(11.5f * SCALE);
+            tp.setFakeBoldText(true);
+            c.drawText("HARGA BUKA: " + cost + " KOIN SAWIT", W / 2, infoBoxY + 36 * SCALE, tp);
+            descOffsetY = 50 * SCALE;
+        }
+
         tp.setTypeface(tfMedium);
         tp.setColor(0xFFF8BBD0);
-        tp.setTextSize(11 * SCALE);
+        tp.setTextSize(10.5f * SCALE);
         tp.setFakeBoldText(false);
         String desc = (skinTab == 0) ? SKIN_DESC[previewSkin] : PIPE_SKIN_DESC[previewPipeSkin];
-        drawWrappedText(c, desc, W / 2, infoBoxY + 40 * SCALE, cardW - 36 * SCALE, tp, 15 * SCALE);
+        drawWrappedText(c, desc, W / 2, infoBoxY + descOffsetY, cardW - 36 * SCALE, tp, 14 * SCALE);
 
-        // 7. Equip Button
+        // 7. Equip / Unlock Button
         float btnW = cardW - 48 * SCALE;
         float btnH = 44 * SCALE;
         float btnX = cardX + 24 * SCALE;
@@ -996,25 +1134,39 @@ public class GameView extends View {
         p.setStyle(Paint.Style.FILL);
         if (isEquipped) {
             p.setColor(0xFF2E7D32);
-        } else {
+        } else if (isUnlocked) {
             p.setShader(new LinearGradient(btnX, equipBtnY, btnX + btnW, equipBtnY + btnH,
                     new int[]{skinTab == 0 ? 0xFFAB47BC : 0xFFFF9100, skinTab == 0 ? 0xFF7B1FA2 : 0xFFFF3D00}, null, Shader.TileMode.CLAMP));
+        } else if (sawitCoins >= cost) {
+            p.setShader(new LinearGradient(btnX, equipBtnY, btnX + btnW, equipBtnY + btnH,
+                    new int[]{0xFFFFD54F, 0xFFFF8F00}, null, Shader.TileMode.CLAMP));
+        } else {
+            p.setColor(0xFF37474F);
         }
         rf.set(btnX, equipBtnY, btnX + btnW, equipBtnY + btnH);
         c.drawRoundRect(rf, 22 * SCALE, 22 * SCALE, p);
         p.setShader(null);
 
         p.setStyle(Paint.Style.STROKE);
-        p.setColor(isEquipped ? 0xFF81C784 : 0xFFFFD54F);
+        p.setColor(isEquipped ? 0xFF81C784 : (isUnlocked ? 0xFFFFD54F : (sawitCoins >= cost ? 0xFFFFF59D : 0x66FFFFFF)));
         p.setStrokeWidth(1.4f * SCALE);
         c.drawRoundRect(rf, 22 * SCALE, 22 * SCALE, p);
 
         tp.setTypeface(tfBlack);
         tp.setColor(Color.WHITE);
-        tp.setTextSize(15 * SCALE);
+        tp.setTextSize(14 * SCALE);
         tp.setFakeBoldText(true);
         tp.setShadowLayer(4 * SCALE, 0, 2 * SCALE, 0xFF000000);
-        String btnText = isEquipped ? "✓ SEDANG DIGUNAKAN" : (skinTab == 0 ? "▶ GUNAKAN KARAKTER INI" : "▶ GUNAKAN TEMA RINTANGAN");
+        String btnText;
+        if (isEquipped) {
+            btnText = "✓ SEDANG DIGUNAKAN";
+        } else if (isUnlocked) {
+            btnText = (skinTab == 0 ? "▶ GUNAKAN KARAKTER INI" : "▶ GUNAKAN TEMA RINTANGAN");
+        } else if (sawitCoins >= cost) {
+            btnText = "🔓 BUKA: " + cost + " KOIN SAWIT";
+        } else {
+            btnText = "🔒 BUTUH " + cost + " 🪙 (KURANG " + (cost - sawitCoins) + ")";
+        }
         c.drawText(btnText, W / 2, equipBtnY + 28 * SCALE, tp);
         tp.clearShadowLayer();
 
@@ -1245,9 +1397,13 @@ public class GameView extends View {
     private void drawSkyAndSun(Canvas c) {
         // Vibrant twilight dusk sky
         p.setStyle(Paint.Style.FILL);
-        p.setShader(new LinearGradient(0, 0, 0, H,
-                new int[]{0xFF1C0502, 0xFF4A0E02, 0xFF8A1E00, 0xFFD84315, 0xFFFF7043, 0xFF5A1604},
-                new float[]{0, 0.18f, 0.38f, 0.62f, 0.82f, 1.0f}, Shader.TileMode.CLAMP));
+        if (skyShader != null) {
+            p.setShader(skyShader);
+        } else {
+            p.setShader(new LinearGradient(0, 0, 0, H,
+                    new int[]{0xFF1C0502, 0xFF4A0E02, 0xFF8A1E00, 0xFFD84315, 0xFFFF7043, 0xFF5A1604},
+                    new float[]{0, 0.18f, 0.38f, 0.62f, 0.82f, 1.0f}, Shader.TileMode.CLAMP));
+        }
         c.drawRect(0, 0, W, H, p);
         p.setShader(null);
 
@@ -1585,6 +1741,57 @@ public class GameView extends View {
 
             drawThemedObstacle(c, pp.x, 0, pw, pp.topH, true, currentPipeSkin);
             drawThemedObstacle(c, pp.x, pp.topH + pp.gap, pw, groundY - pp.topH - pp.gap, false, currentPipeSkin);
+
+            if (!pp.coinCollected) {
+                drawFloatingSawitCoin(c, pp.x + pw / 2, pp.topH + pp.gap / 2);
+            }
+        }
+    }
+
+    private void drawFloatingSawitCoin(Canvas c, float cx, float cy) {
+        long timeMs = System.currentTimeMillis();
+        float bobY = (float)Math.sin(timeMs * 0.006f + cx * 0.03f) * (4.5f * SCALE);
+        float spinPhase = timeMs * 0.0055f + cx * 0.02f;
+        float cosSpin = (float)Math.cos(spinPhase);
+        float absCos = Math.abs(cosSpin);
+
+        float coinR = 14 * SCALE;
+        float coinW = Math.max(3.2f * SCALE, coinR * absCos);
+        float cyBob = cy + bobY;
+
+        // 1. Soft golden pulsing glow
+        float pulse = 0.8f + 0.2f * (float)Math.sin(timeMs * 0.008f + cx);
+        sp.setStyle(Paint.Style.FILL);
+        sp.setColor(Color.argb((int)(55 * pulse), 255, 215, 0));
+        rf.set(cx - coinR * 1.55f, cyBob - coinR * 1.55f, cx + coinR * 1.55f, cyBob + coinR * 1.55f);
+        c.drawOval(rf, sp);
+
+        // 2. Coin Rim / 3D Bevel edge
+        p.setStyle(Paint.Style.FILL);
+        p.setColor(0xFFB78103);
+        rf.set(cx - coinW, cyBob - coinR, cx + coinW, cyBob + coinR);
+        c.drawOval(rf, p);
+
+        // 3. Golden coin face
+        p.setColor(0xFFFFD54F);
+        rf.set(cx - coinW * 0.86f, cyBob - coinR * 0.86f, cx + coinW * 0.86f, cyBob + coinR * 0.86f);
+        c.drawOval(rf, p);
+
+        // 4. Inner Emblem (Star symbol)
+        if (absCos > 0.45f) {
+            tp.setTypeface(tfBlack);
+            tp.setColor(0xFF8D5B00);
+            tp.setTextSize(12 * SCALE * absCos);
+            tp.setTextAlign(Paint.Align.CENTER);
+            tp.setFakeBoldText(true);
+            c.drawText("★", cx, cyBob + 4 * SCALE, tp);
+        }
+
+        // 5. Specular glint / shine
+        if (absCos > 0.65f) {
+            p.setColor(0x88FFFFFF);
+            rf.set(cx - coinW * 0.65f, cyBob - coinR * 0.65f, cx - coinW * 0.15f, cyBob - coinR * 0.15f);
+            c.drawOval(rf, p);
         }
     }
 
@@ -1915,9 +2122,13 @@ public class GameView extends View {
 
         // 1. Rich Earth Base Gradient (Warm Fertile Chocolate & Peat Loam - NO PITCH BLACK)
         p.setStyle(Paint.Style.FILL);
-        p.setShader(new LinearGradient(0, groundY, 0, H,
-                new int[]{0xFF5A2A14, 0xFF421C0B, 0xFF321406, 0xFF240D04},
-                new float[]{0.0f, 0.25f, 0.65f, 1.0f}, Shader.TileMode.CLAMP));
+        if (groundShader != null) {
+            p.setShader(groundShader);
+        } else {
+            p.setShader(new LinearGradient(0, groundY, 0, H,
+                    new int[]{0xFF5A2A14, 0xFF421C0B, 0xFF321406, 0xFF240D04},
+                    new float[]{0.0f, 0.25f, 0.65f, 1.0f}, Shader.TileMode.CLAMP));
+        }
         c.drawRect(0, groundY, W, H, p);
         p.setShader(null);
 
@@ -1948,32 +2159,38 @@ public class GameView extends View {
         float startX = -(groundOffset % patternW);
 
         for (float bx = startX - patternW; bx < W + patternW; bx += patternW) {
-            // [A] Palm Roots (Akar Serabut Kelapa Sawit)
+            // [A] Palm Roots (Akar Serabut Kelapa Sawit Alami & Berkelanjutan)
             p.setStyle(Paint.Style.STROKE);
             p.setStrokeCap(Paint.Cap.ROUND);
 
-            // Root 1: Meandering upper root
+            // Wavy undulating taproot across topsoil - seamless continuous join
             pa.reset();
-            pa.moveTo(bx + 8 * SCALE, groundY + 12 * SCALE);
-            pa.quadTo(bx + 35 * SCALE, groundY + gh * 0.38f, bx + 70 * SCALE, groundY + gh * 0.44f);
-            p.setColor(0xFF7D4E2A);
-            p.setStrokeWidth(2.6f * SCALE);
-            c.drawPath(pa, p);
-            p.setColor(0xFFA06C42);
-            p.setStrokeWidth(1.1f * SCALE);
+            pa.moveTo(bx, groundY + 14 * SCALE);
+            pa.cubicTo(bx + 35 * SCALE, groundY + 22 * SCALE, bx + 65 * SCALE, groundY + 16 * SCALE, bx + 95 * SCALE, groundY + 24 * SCALE);
+            pa.quadTo(bx + 120 * SCALE, groundY + 18 * SCALE, bx + patternW, groundY + 14 * SCALE);
+            p.setColor(0xFF5D381E);
+            p.setStrokeWidth(2.4f * SCALE);
             c.drawPath(pa, p);
 
-            // Root 2: Deeper descending root with branch
+            // Secondary deeper curved roots & tendrils
             pa.reset();
-            pa.moveTo(bx + 75 * SCALE, groundY + gh * 0.26f);
-            pa.quadTo(bx + 105 * SCALE, groundY + gh * 0.55f, bx + 135 * SCALE, groundY + gh * 0.70f);
-            p.setColor(0xFF6B4021);
-            p.setStrokeWidth(2.2f * SCALE);
+            pa.moveTo(bx + 25 * SCALE, groundY + 20 * SCALE);
+            pa.quadTo(bx + 40 * SCALE, groundY + gh * 0.45f, bx + 52 * SCALE, groundY + gh * 0.65f);
+            pa.moveTo(bx + 40 * SCALE, groundY + gh * 0.45f);
+            pa.quadTo(bx + 58 * SCALE, groundY + gh * 0.52f, bx + 70 * SCALE, groundY + gh * 0.58f);
+
+            pa.moveTo(bx + 85 * SCALE, groundY + 22 * SCALE);
+            pa.quadTo(bx + 100 * SCALE, groundY + gh * 0.40f, bx + 115 * SCALE, groundY + gh * 0.60f);
+            p.setColor(0xFF452610);
+            p.setStrokeWidth(1.6f * SCALE);
             c.drawPath(pa, p);
-            // Root 2 branch
+
+            // Subtle warm fiber highlights
             pa.reset();
-            pa.moveTo(bx + 100 * SCALE, groundY + gh * 0.50f);
-            pa.quadTo(bx + 115 * SCALE, groundY + gh * 0.65f, bx + 126 * SCALE, groundY + gh * 0.85f);
+            pa.moveTo(bx + 5 * SCALE, groundY + 13 * SCALE);
+            pa.cubicTo(bx + 35 * SCALE, groundY + 20.5f * SCALE, bx + 65 * SCALE, groundY + 15 * SCALE, bx + 95 * SCALE, groundY + 22.5f * SCALE);
+            p.setColor(0x558D5B38);
+            p.setStrokeWidth(1.0f * SCALE);
             c.drawPath(pa, p);
 
             // [B] Embedded River Stones & Peat Pebbles (Batu Kerikil Alami)
@@ -2025,10 +2242,11 @@ public class GameView extends View {
 
             if (pulse > 0.5f && graphicsLevel >= 1) {
                 float flameH = gf.size * 0.95f * pulse;
-                p.setShader(new RadialGradient(gx, groundY - flameH * 0.3f, flameH * 0.7f,
-                        new int[]{0xEEFFE082, 0x99FF6D00, 0x00AA0000}, null, Shader.TileMode.CLAMP));
-                c.drawCircle(gx, groundY - flameH * 0.3f, flameH * 0.7f, p);
-                p.setShader(null);
+                p.setStyle(Paint.Style.FILL);
+                p.setColor(Color.argb((int)(180 * pulse), 255, 109, 0));
+                c.drawCircle(gx, groundY - flameH * 0.25f, flameH * 0.5f, p);
+                p.setColor(Color.argb((int)(240 * pulse), 255, 224, 130));
+                c.drawCircle(gx, groundY - flameH * 0.25f, flameH * 0.25f, p);
             }
         }
     }
@@ -2067,10 +2285,18 @@ public class GameView extends View {
         pa.close();
 
         p.setStyle(Paint.Style.FILL);
-        p.setShader(new LinearGradient(x, groundY, x, groundY - h,
-                new int[]{0xFF2E7D32, 0xFF4CAF50, 0xFFFFCA28}, null, Shader.TileMode.CLAMP));
-        c.drawPath(pa, p);
         p.setShader(null);
+        p.setColor(0xFF2E7D32);
+        c.drawPath(pa, p);
+
+        // Sunlit green blade highlight
+        pa.reset();
+        pa.moveTo(x - 1.5f * SCALE, groundY + 1 * SCALE);
+        pa.quadTo(x + lean * 3 * SCALE, groundY - h * 0.6f, x + lean * 6 * SCALE, groundY - h + 1 * SCALE);
+        p.setStyle(Paint.Style.STROKE);
+        p.setStrokeWidth(1.4f * SCALE);
+        p.setColor(0xFFFFCA28);
+        c.drawPath(pa, p);
     }
 
     private void drawGroundDropShadow(Canvas c) {
@@ -2209,6 +2435,29 @@ public class GameView extends View {
 
     private void drawScoreHUD(Canvas c) {
         float cx = W / 2, cy = safeTop + 24 * SCALE;
+
+        // Top-left Coin Counter Pill
+        float coinPillX = 14 * SCALE;
+        float coinPillY = safeTop + 4 * SCALE;
+        float coinPillH = 28 * SCALE;
+        float coinPillW = 82 * SCALE;
+        p.setStyle(Paint.Style.FILL);
+        p.setColor(0x77000000);
+        rf.set(coinPillX, coinPillY, coinPillX + coinPillW, coinPillY + coinPillH);
+        c.drawRoundRect(rf, 14 * SCALE, 14 * SCALE, p);
+
+        p.setStyle(Paint.Style.STROKE);
+        p.setColor(0xAAFFD54F);
+        p.setStrokeWidth(1.2f * SCALE);
+        c.drawRoundRect(rf, 14 * SCALE, 14 * SCALE, p);
+
+        tp.setTypeface(tfBlack);
+        tp.setColor(0xFFFFD54F);
+        tp.setTextSize(13 * SCALE);
+        tp.setTextAlign(Paint.Align.LEFT);
+        tp.setFakeBoldText(true);
+        c.drawText("🪙 " + sawitCoins, coinPillX + 8 * SCALE, coinPillY + 19 * SCALE, tp);
+
         tp.setTypeface(tfBlack);
         tp.setTextSize(46 * SCALE);
         tp.setTextAlign(Paint.Align.CENTER);
@@ -2234,7 +2483,7 @@ public class GameView extends View {
         c.drawRect(0, 0, W, H, p);
 
         float cardW = Math.min(320 * SCALE, W * 0.88f);
-        float cardH = 312 * SCALE;
+        float cardH = 328 * SCALE;
         float cardX = (W - cardW) / 2;
         float cardY = safeTop + (playableH - cardH) * 0.35f;
 
@@ -2259,9 +2508,9 @@ public class GameView extends View {
         c.drawText("Burungmu tertelan pekatnya asap kabut!", W / 2, cardY + 72 * SCALE, tp);
 
         float scoreBoxW = cardW - 40 * SCALE;
-        float scoreBoxH = 78 * SCALE;
+        float scoreBoxH = 92 * SCALE;
         float scoreBoxX = cardX + 20 * SCALE;
-        float scoreBoxY = cardY + 88 * SCALE;
+        float scoreBoxY = cardY + 86 * SCALE;
 
         p.setStyle(Paint.Style.FILL);
         p.setColor(0x55000000);
@@ -2275,17 +2524,27 @@ public class GameView extends View {
 
         tp.setTypeface(tfCondensed);
         tp.setColor(0xFFB0BEC5);
-        tp.setTextSize(13 * SCALE);
-        c.drawText("POHON DILEWATI", scoreBoxX + scoreBoxW * 0.28f, scoreBoxY + 27 * SCALE, tp);
-        c.drawText("REKOR TERBAIK", scoreBoxX + scoreBoxW * 0.72f, scoreBoxY + 27 * SCALE, tp);
+        tp.setTextSize(11.5f * SCALE);
+        c.drawText("POHON", scoreBoxX + scoreBoxW * 0.18f, scoreBoxY + 23 * SCALE, tp);
+        c.drawText("KOIN", scoreBoxX + scoreBoxW * 0.50f, scoreBoxY + 23 * SCALE, tp);
+        c.drawText("REKOR", scoreBoxX + scoreBoxW * 0.82f, scoreBoxY + 23 * SCALE, tp);
 
         tp.setTypeface(tfBlack);
         tp.setColor(Color.WHITE);
-        tp.setTextSize(28 * SCALE);
-        c.drawText(String.valueOf(score), scoreBoxX + scoreBoxW * 0.28f, scoreBoxY + 63 * SCALE, tp);
+        tp.setTextSize(24 * SCALE);
+        c.drawText(String.valueOf(score), scoreBoxX + scoreBoxW * 0.18f, scoreBoxY + 54 * SCALE, tp);
 
         tp.setColor(0xFFFFD54F);
-        c.drawText(String.valueOf(highScore), scoreBoxX + scoreBoxW * 0.72f, scoreBoxY + 63 * SCALE, tp);
+        c.drawText("+" + runCoins, scoreBoxX + scoreBoxW * 0.50f, scoreBoxY + 54 * SCALE, tp);
+
+        tp.setColor(0xFFFFB74D);
+        c.drawText(String.valueOf(highScore), scoreBoxX + scoreBoxW * 0.82f, scoreBoxY + 54 * SCALE, tp);
+
+        // Total coin sub-badge
+        tp.setTypeface(tfCondensed);
+        tp.setColor(0xFFFFE082);
+        tp.setTextSize(11 * SCALE);
+        c.drawText("TOTAL KOIN SAWIT: " + sawitCoins + " 🪙", scoreBoxX + scoreBoxW / 2, scoreBoxY + 79 * SCALE, tp);
 
         // --- BUTTON 1: COBA LAGI ---
         goRetryBtnW = cardW - 40 * SCALE;
@@ -2392,6 +2651,42 @@ public class GameView extends View {
         }
     }
 
+    private void spawnCoinSparkles(float x, float y) {
+        int[] coinColors = { 0xFFFFD700, 0xFFFFEB3B, 0xFFFFA000, 0xFFFFFFFF };
+        for (int i = 0; i < 14; i++) {
+            Particle pt = new Particle();
+            pt.x = x;
+            pt.y = y;
+            float angle = rng.nextFloat() * (float)Math.PI * 2;
+            float speed = (40 + rng.nextFloat() * 110) * SCALE;
+            pt.vx = (float)Math.cos(angle) * speed;
+            pt.vy = (float)Math.sin(angle) * speed;
+            pt.size = (3 + rng.nextFloat() * 3.5f) * SCALE;
+            pt.maxLife = 0.45f + rng.nextFloat() * 0.35f;
+            pt.life = pt.maxLife;
+            pt.color = coinColors[rng.nextInt(coinColors.length)];
+            particles.add(pt);
+        }
+    }
+
+    private void spawnCelebrationParticles(float x, float y) {
+        int[] celebColors = { 0xFFFFD700, 0xFFFF4081, 0xFF00E676, 0xFF00E5FF, 0xFFFFAB00, 0xFFFFFFFF };
+        for (int i = 0; i < 36; i++) {
+            Particle pt = new Particle();
+            pt.x = x;
+            pt.y = y;
+            float angle = rng.nextFloat() * (float)Math.PI * 2;
+            float speed = (50 + rng.nextFloat() * 200) * SCALE;
+            pt.vx = (float)Math.cos(angle) * speed;
+            pt.vy = (float)Math.sin(angle) * speed;
+            pt.size = (3.5f + rng.nextFloat() * 4.5f) * SCALE;
+            pt.maxLife = 0.7f + rng.nextFloat() * 0.5f;
+            pt.life = pt.maxLife;
+            pt.color = celebColors[rng.nextInt(celebColors.length)];
+            particles.add(pt);
+        }
+    }
+
     // ========================================================
     //  INTERACTIVE TOUCH HANDLING (Accurate Hitboxes & Instant Restart)
     // ========================================================
@@ -2425,6 +2720,7 @@ public class GameView extends View {
             if (tx > playBtnX && tx < playBtnX + playBtnW && ty > playBtnY && ty < playBtnY + playBtnH) {
                 gameState = STATE_PLAYING;
                 score = 0;
+                runCoins = 0;
                 pipes.clear();
                 particles.clear();
                 pipeSpawnTimer = 0.5f;
@@ -2479,6 +2775,7 @@ public class GameView extends View {
                 && ty >= goRetryBtnY - 8 * SCALE && ty <= goRetryBtnY + goRetryBtnH + 8 * SCALE) {
             gameState = STATE_PLAYING;
             score = 0;
+            runCoins = 0;
             pipes.clear();
             particles.clear();
             pipeSpawnTimer = 0.5f;
@@ -2499,6 +2796,7 @@ public class GameView extends View {
     public void goToMenu() {
         gameState = STATE_MENU;
         score = 0;
+        runCoins = 0;
         pipes.clear();
         particles.clear();
         pipeSpawnTimer = 0.5f;
@@ -2581,11 +2879,53 @@ public class GameView extends View {
         float btnX = cardX + 24 * SCALE;
         float equipBtnY = cardY + cardH - btnH * 2 - 18 * SCALE;
 
-        // Equip Button
+        // Equip / Unlock Button
         if (tx > btnX && tx < btnX + btnW && ty > equipBtnY && ty < equipBtnY + btnH) {
             if (skinTab == 0) {
+                if (!isSkinUnlocked(previewSkin)) {
+                    int cost = SKIN_COSTS[previewSkin];
+                    if (sawitCoins >= cost) {
+                        sawitCoins -= cost;
+                        unlockSkin(previewSkin);
+                        currentSkin = previewSkin;
+                        saveCoins();
+                        saveSettings();
+                        playSuccessSound();
+                        spawnCelebrationParticles(W / 2, equipBtnY + btnH / 2);
+                        try {
+                            if (vibrator != null) vibrator.vibrate(80);
+                        } catch (Exception ignored) {}
+                    } else {
+                        playHitSound();
+                        try {
+                            if (vibrator != null) vibrator.vibrate(35);
+                        } catch (Exception ignored) {}
+                    }
+                    return;
+                }
                 currentSkin = previewSkin;
             } else {
+                if (!isPipeSkinUnlocked(previewPipeSkin)) {
+                    int cost = PIPE_SKIN_COSTS[previewPipeSkin];
+                    if (sawitCoins >= cost) {
+                        sawitCoins -= cost;
+                        unlockPipeSkin(previewPipeSkin);
+                        currentPipeSkin = previewPipeSkin;
+                        saveCoins();
+                        saveSettings();
+                        playSuccessSound();
+                        spawnCelebrationParticles(W / 2, equipBtnY + btnH / 2);
+                        try {
+                            if (vibrator != null) vibrator.vibrate(80);
+                        } catch (Exception ignored) {}
+                    } else {
+                        playHitSound();
+                        try {
+                            if (vibrator != null) vibrator.vibrate(35);
+                        } catch (Exception ignored) {}
+                    }
+                    return;
+                }
                 currentPipeSkin = previewPipeSkin;
             }
             saveSettings();
