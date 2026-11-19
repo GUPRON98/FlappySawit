@@ -394,16 +394,16 @@ public class GameView extends View {
 
         // Calculate Game Over Button coordinates (Centered Horizontally & Vertically)
         float goCardW = Math.min(320 * SCALE, W * 0.88f);
-        float goCardH = 320 * SCALE;
+        float goCardH = 292 * SCALE;
         float goCardX = (W - goCardW) / 2;
-        float goCardY = safeTop + (playableH - goCardH) * 0.48f;
-        float goScoreBoxY = goCardY + 82 * SCALE;
-        float goScoreBoxH = 88 * SCALE;
+        float goCardY = safeTop + (playableH - goCardH) * 0.46f;
+        float goScoreBoxY = goCardY + 72 * SCALE;
+        float goScoreBoxH = 84 * SCALE;
 
         goRetryBtnW = goCardW - 40 * SCALE;
         goRetryBtnH = 46 * SCALE;
         goRetryBtnX = (W - goRetryBtnW) / 2;
-        goRetryBtnY = goScoreBoxY + goScoreBoxH + 14 * SCALE;
+        goRetryBtnY = goScoreBoxY + goScoreBoxH + 12 * SCALE;
 
         goMenuBtnW = goRetryBtnW;
         goMenuBtnH = 46 * SCALE;
@@ -931,21 +931,28 @@ public class GameView extends View {
         tp.setFakeBoldText(true);
         c.drawText("🔴 KORUPSI WATCH", tickerX + tagW / 2, tickerY + 16 * SCALE, tp);
 
-        // Cycling satirical headlines with smooth alpha fade
-        int headlineIdx = (int)((timeMs / 3800) % SATIRE_HEADLINES.length);
-        float cycleT = (timeMs % 3800) / 3800f;
-        float headlineAlpha = 1.0f;
-        if (cycleT < 0.15f) headlineAlpha = cycleT / 0.15f;
-        else if (cycleT > 0.85f) headlineAlpha = (1.0f - cycleT) / 0.15f;
+        // Smooth Marquee Scrolling Satirical News Ticker (No text clipping!)
+        float clipLeft = tickerX + tagW + 6 * SCALE;
+        float clipRight = tickerX + tickerW - 6 * SCALE;
+        float clipW = clipRight - clipLeft;
 
-        tp.setColor(Color.argb((int)(255 * headlineAlpha), 255, 224, 130));
+        int headlineIdx = (int)((timeMs / 6500) % SATIRE_HEADLINES.length);
+        String currentHeadline = SATIRE_HEADLINES[headlineIdx];
+
         tp.setTextSize(10.5f * SCALE);
-        tp.setTextAlign(Paint.Align.LEFT);
+        tp.setTypeface(tfCondensed);
         tp.setFakeBoldText(false);
+        float textW = tp.measureText(currentHeadline);
+
+        float marqueeCycle = (timeMs % 6500) / 6500.0f;
+        float scrollX = clipRight - marqueeCycle * (clipW + textW + 16 * SCALE);
+
+        tp.setColor(0xFFFFE082);
+        tp.setTextAlign(Paint.Align.LEFT);
 
         c.save();
-        c.clipRect(tickerX + tagW + 6 * SCALE, tickerY, tickerX + tickerW - 6 * SCALE, tickerY + tickerH);
-        c.drawText(SATIRE_HEADLINES[headlineIdx], tickerX + tagW + 8 * SCALE, tickerY + 16.5f * SCALE, tp);
+        c.clipRect(clipLeft, tickerY, clipRight, tickerY + tickerH);
+        c.drawText(currentHeadline, scrollX, tickerY + 16.5f * SCALE, tp);
         c.restore();
 
         // 2. 3D GRAND ARCADE TITLE & SATIRICAL SUBTITLE (Fixed Vertical Spacing)
@@ -1299,13 +1306,19 @@ public class GameView extends View {
         p.setColor(0xFFFF6D00);
         c.drawPath(pointer, p);
 
-        // Text
+        // Dynamic auto-fit satirical quote text
         tp.setTypeface(tfCondensed);
         tp.setColor(0xFFBF360C);
-        tp.setTextSize(11.5f * SCALE);
+        float qSize = 11.5f * SCALE;
+        tp.setTextSize(qSize);
+        String quoted = "\"" + text + "\"";
+        while (tp.measureText(quoted) > (bubbleW - 20 * SCALE) && qSize > 8.0f * SCALE) {
+            qSize -= 0.5f * SCALE;
+            tp.setTextSize(qSize);
+        }
         tp.setTextAlign(Paint.Align.CENTER);
         tp.setFakeBoldText(true);
-        c.drawText("\"" + text + "\"", bx, bubbleY + 20 * SCALE, tp);
+        c.drawText(quoted, bx, bubbleY + bubbleH / 2 - (tp.descent() + tp.ascent()) / 2, tp);
     }
 
     // ========================================================
@@ -3566,10 +3579,15 @@ public class GameView extends View {
         p.setStrokeWidth(1.5f * SCALE);
         c.drawRoundRect(rf, 4 * SCALE, 4 * SCALE, p);
 
-        // Stencil "CPO" text on cap
+        // Stencil "CPO" text on cap with auto-fit
         tp.setTypeface(tfBlack);
         tp.setColor(0xFFFFD54F);
-        tp.setTextSize(9 * SCALE);
+        float cpoSize = 7.5f * SCALE;
+        tp.setTextSize(cpoSize);
+        while (tp.measureText("CPO ILEGAL") > (w + 4 * SCALE) && cpoSize > 5.0f * SCALE) {
+            cpoSize -= 0.5f * SCALE;
+            tp.setTextSize(cpoSize);
+        }
         tp.setTextAlign(Paint.Align.CENTER);
         c.drawText("CPO ILEGAL", x + w / 2, capY + capH * 0.65f, tp);
     }
@@ -3692,9 +3710,14 @@ public class GameView extends View {
 
         tp.setTypeface(tfBlack);
         tp.setColor(0xFFFFD54F);
-        tp.setTextSize(9 * SCALE);
+        float tipikorSize = 7.0f * SCALE;
+        tp.setTextSize(tipikorSize);
+        while (tp.measureText("TIPIKOR") > (w - 6 * SCALE) && tipikorSize > 4.5f * SCALE) {
+            tipikorSize -= 0.5f * SCALE;
+            tp.setTextSize(tipikorSize);
+        }
         tp.setTextAlign(Paint.Align.CENTER);
-        c.drawText("TIPIKOR 001", x + w / 2 + 4 * SCALE, capY + capH * 0.65f, tp);
+        c.drawText("TIPIKOR", x + w / 2 + 2.5f * SCALE, capY + capH * 0.65f, tp);
     }
 
     // [THEME 9] Sel Terali Tipikor (Penjara Khusus Koruptor)
@@ -3753,10 +3776,15 @@ public class GameView extends View {
         c.drawCircle(x + 6 * SCALE, capY + capH / 2, 3.0f * SCALE, p);
 
         tp.setTypeface(tfBlack);
-        tp.setColor(0xFFE0E0E0);
-        tp.setTextSize(9 * SCALE);
+        tp.setColor(0xFFEEEEEE);
+        float sukamiskinSize = 6.8f * SCALE;
+        tp.setTextSize(sukamiskinSize);
+        while (tp.measureText("SUKAMISKIN") > (w - 4 * SCALE) && sukamiskinSize > 4.5f * SCALE) {
+            sukamiskinSize -= 0.5f * SCALE;
+            tp.setTextSize(sukamiskinSize);
+        }
         tp.setTextAlign(Paint.Align.CENTER);
-        c.drawText("BLOK SUKAMISKIN", x + w / 2 + 4 * SCALE, capY + capH * 0.65f, tp);
+        c.drawText("SUKAMISKIN", x + w / 2 + 2.5f * SCALE, capY + capH * 0.65f, tp);
     }
 
     // [THEME 10] Pohon Hayat Rimba (Monolit Ulin Kalimantan)
@@ -4194,9 +4222,9 @@ public class GameView extends View {
         c.drawRect(0, 0, W, H, p);
 
         float cardW = Math.min(320 * SCALE, W * 0.88f);
-        float cardH = 320 * SCALE;
+        float cardH = 292 * SCALE;
         float cardX = (W - cardW) / 2;
-        float cardTargetY = safeTop + (playableH - cardH) * 0.48f;
+        float cardTargetY = safeTop + (playableH - cardH) * 0.46f;
         float cardY = cardTargetY + (1.0f - easeOut) * (85 * SCALE);
 
         p.setShader(new LinearGradient(cardX, cardY, cardX, cardY + cardH,
@@ -4210,13 +4238,13 @@ public class GameView extends View {
         p.setStrokeWidth(2.5f * SCALE);
         c.drawRoundRect(rf, 22 * SCALE, 22 * SCALE, p);
 
-        draw3DText(c, "MISI GAGAL!", W / 2, cardY + 44 * SCALE, 30 * SCALE, tfBlack, 0xFFFF8A80, 0xFFD50000, 0xFF4A0E00);
+        draw3DText(c, "MISI GAGAL!", W / 2, cardY + 38 * SCALE, 26 * SCALE, tfBlack, 0xFFFF8A80, 0xFFD50000, 0xFF4A0E00);
 
         tp.setTypeface(tfCondensed);
         tp.setColor(0xFFFFCC80);
-        tp.setTextSize(13 * SCALE);
-        tp.setTextAlign(Paint.Align.CENTER);
-        tp.setFakeBoldText(true);
+        float subSize = 12.0f * SCALE;
+        tp.setTextSize(subSize);
+        float maxSubW = cardW - 36 * SCALE;
 
         String failSubtitle;
         if (score == 0) {
@@ -4230,12 +4258,19 @@ public class GameView extends View {
         } else {
             failSubtitle = "Luar biasa! Berhasil membongkar kebun ilegal!";
         }
-        c.drawText(failSubtitle, W / 2, cardY + 68 * SCALE, tp);
+
+        while (tp.measureText(failSubtitle) > maxSubW && subSize > 8.5f * SCALE) {
+            subSize -= 0.5f * SCALE;
+            tp.setTextSize(subSize);
+        }
+        tp.setTextAlign(Paint.Align.CENTER);
+        tp.setFakeBoldText(true);
+        c.drawText(failSubtitle, W / 2, cardY + 58 * SCALE, tp);
 
         float scoreBoxW = cardW - 40 * SCALE;
-        float scoreBoxH = 88 * SCALE;
+        float scoreBoxH = 84 * SCALE;
         float scoreBoxX = (W - scoreBoxW) / 2;
-        float scoreBoxY = cardY + 82 * SCALE;
+        float scoreBoxY = cardY + 72 * SCALE;
 
         p.setStyle(Paint.Style.FILL);
         p.setColor(0x55000000);
@@ -4282,7 +4317,7 @@ public class GameView extends View {
         goRetryBtnW = cardW - 40 * SCALE;
         goRetryBtnH = 46 * SCALE;
         goRetryBtnX = (W - goRetryBtnW) / 2;
-        goRetryBtnY = scoreBoxY + scoreBoxH + 14 * SCALE;
+        goRetryBtnY = scoreBoxY + scoreBoxH + 12 * SCALE;
 
         // Multi-stage soft drop shadow for Coba Lagi
         sp.setStyle(Paint.Style.FILL);
@@ -4544,8 +4579,9 @@ public class GameView extends View {
         }
 
         if (gameState == STATE_MENU) {
-            // [1] Play Button
-            if (tx > playBtnX && tx < playBtnX + playBtnW && ty > playBtnY && ty < playBtnY + playBtnH) {
+            // [1] Play Button (with comfortable thumb tap tolerance)
+            if (tx >= playBtnX - 8 * SCALE && tx <= playBtnX + playBtnW + 8 * SCALE
+                    && ty >= playBtnY - 8 * SCALE && ty <= playBtnY + playBtnH + 8 * SCALE) {
                 gameState = STATE_PLAYING;
                 score = 0;
                 runCoins = 0;
@@ -4559,7 +4595,8 @@ public class GameView extends View {
             }
 
             // [2] Skin & Theme Button (Left)
-            if (tx > skinBtnX && tx < skinBtnX + skinBtnW && ty > skinBtnY && ty < skinBtnY + skinBtnH) {
+            if (tx >= skinBtnX - 6 * SCALE && tx <= skinBtnX + skinBtnW + 6 * SCALE
+                    && ty >= skinBtnY - 6 * SCALE && ty <= skinBtnY + skinBtnH + 6 * SCALE) {
                 prevState = STATE_MENU;
                 previewSkin = currentSkin;
                 previewPipeSkin = currentPipeSkin;
@@ -4569,7 +4606,8 @@ public class GameView extends View {
             }
 
             // [3] Settings Button (Right)
-            if (tx > setBtnX && tx < setBtnX + setBtnW && ty > setBtnY && ty < setBtnY + setBtnH) {
+            if (tx >= setBtnX - 6 * SCALE && tx <= setBtnX + setBtnW + 6 * SCALE
+                    && ty >= setBtnY - 6 * SCALE && ty <= setBtnY + setBtnH + 6 * SCALE) {
                 prevState = STATE_MENU;
                 gameState = STATE_SETTINGS;
                 playClickSound();
