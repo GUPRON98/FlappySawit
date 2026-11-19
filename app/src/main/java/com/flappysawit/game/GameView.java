@@ -1750,49 +1750,207 @@ public class GameView extends View {
 
     private void drawFloatingSawitCoin(Canvas c, float cx, float cy) {
         long timeMs = System.currentTimeMillis();
-        float bobY = (float)Math.sin(timeMs * 0.006f + cx * 0.03f) * (4.5f * SCALE);
-        float spinPhase = timeMs * 0.0055f + cx * 0.02f;
-        float cosSpin = (float)Math.cos(spinPhase);
-        float absCos = Math.abs(cosSpin);
-
-        float coinR = 14 * SCALE;
-        float coinW = Math.max(3.2f * SCALE, coinR * absCos);
+        float bobY = (float)Math.sin(timeMs * 0.005f + cx * 0.025f) * (4.2f * SCALE);
         float cyBob = cy + bobY;
 
-        // 1. Soft golden pulsing glow
-        float pulse = 0.8f + 0.2f * (float)Math.sin(timeMs * 0.008f + cx);
+        float spinPhase = timeMs * 0.0045f + cx * 0.015f;
+        float cosA = (float)Math.cos(spinPhase);
+        float sinA = (float)Math.sin(spinPhase);
+        float absCos = Math.abs(cosA);
+        float edgeDir = (sinA >= 0 ? 1.0f : -1.0f);
+
+        float coinR = 16.5f * SCALE;
+        float coinW = Math.max(2.5f * SCALE, coinR * absCos);
+        float edgeThick = 4.5f * SCALE * (1.0f - absCos);
+
+        // 1. Soft Pulsing Golden Aura (ambient lighting)
+        float auraPulse = 0.85f + 0.15f * (float)Math.sin(timeMs * 0.007f + cx);
+        float auraR = coinR * 1.55f * auraPulse;
         sp.setStyle(Paint.Style.FILL);
-        sp.setColor(Color.argb((int)(55 * pulse), 255, 215, 0));
-        rf.set(cx - coinR * 1.55f, cyBob - coinR * 1.55f, cx + coinR * 1.55f, cyBob + coinR * 1.55f);
+        sp.setColor(Color.argb((int)(60 * auraPulse), 255, 200, 0));
+        rf.set(cx - auraR, cyBob - auraR, cx + auraR, cyBob + auraR);
         c.drawOval(rf, sp);
 
-        // 2. Coin Rim / 3D Bevel edge
+        sp.setColor(Color.argb((int)(30 * auraPulse), 255, 120, 0));
+        rf.set(cx - auraR * 1.35f, cyBob - auraR * 1.35f, cx + auraR * 1.35f, cyBob + auraR * 1.35f);
+        c.drawOval(rf, sp);
+
+        // 2. 3D Cylindrical Edge (Burnished Gold Rim Thickness)
+        if (edgeThick > 0.8f * SCALE) {
+            float backX = cx - edgeDir * edgeThick;
+            pa.reset();
+            pa.moveTo(cx, cyBob - coinR);
+            pa.lineTo(backX, cyBob - coinR);
+            pa.lineTo(backX, cyBob + coinR);
+            pa.lineTo(cx, cyBob + coinR);
+            pa.close();
+
+            p.setStyle(Paint.Style.FILL);
+            p.setColor(0xFF9E6000); // Deep burnished coin edge
+            c.drawPath(pa, p);
+
+            // Back face ellipse edge
+            rf.set(backX - coinW, cyBob - coinR, backX + coinW, cyBob + coinR);
+            c.drawOval(rf, p);
+
+            // Milled notches along edge
+            p.setStyle(Paint.Style.STROKE);
+            p.setColor(0xFF6D3C00);
+            p.setStrokeWidth(1.2f * SCALE);
+            float stepY = coinR * 0.45f;
+            for (float ny = cyBob - coinR + stepY * 0.6f; ny < cyBob + coinR - stepY * 0.4f; ny += stepY) {
+                c.drawLine(cx, ny, backX, ny, p);
+            }
+        }
+
+        // 3. Front Coin Outer Rim Base (Warm polished gold)
         p.setStyle(Paint.Style.FILL);
-        p.setColor(0xFFB78103);
+        p.setColor(0xFFFFB300);
         rf.set(cx - coinW, cyBob - coinR, cx + coinW, cyBob + coinR);
         c.drawOval(rf, p);
 
-        // 3. Golden coin face
-        p.setColor(0xFFFFD54F);
-        rf.set(cx - coinW * 0.86f, cyBob - coinR * 0.86f, cx + coinW * 0.86f, cyBob + coinR * 0.86f);
+        // 4. Outer Rim Bevels: Highlight top-left, shadow bottom-right
+        p.setStyle(Paint.Style.STROKE);
+        p.setStrokeWidth(1.4f * SCALE);
+        p.setColor(0xFFFFF9C4); // Shiny pale gold rim highlight
+        rf.set(cx - coinW + 0.6f * SCALE, cyBob - coinR + 0.6f * SCALE, cx + coinW - 0.6f * SCALE, cyBob + coinR - 0.6f * SCALE);
         c.drawOval(rf, p);
 
-        // 4. Inner Emblem (Star symbol)
-        if (absCos > 0.45f) {
-            tp.setTypeface(tfBlack);
-            tp.setColor(0xFF8D5B00);
-            tp.setTextSize(12 * SCALE * absCos);
-            tp.setTextAlign(Paint.Align.CENTER);
-            tp.setFakeBoldText(true);
-            c.drawText("★", cx, cyBob + 4 * SCALE, tp);
-        }
+        p.setColor(0xFFB26A00); // Shadow rim depth
+        rf.set(cx - coinW + 1.4f * SCALE, cyBob - coinR + 1.4f * SCALE, cx + coinW - 1.4f * SCALE, cyBob + coinR - 1.4f * SCALE);
+        c.drawOval(rf, p);
 
-        // 5. Specular glint / shine
-        if (absCos > 0.65f) {
-            p.setColor(0x88FFFFFF);
-            rf.set(cx - coinW * 0.65f, cyBob - coinR * 0.65f, cx - coinW * 0.15f, cyBob - coinR * 0.15f);
+        // 5. Recessed Inner Coin Well
+        float innerW = coinW * 0.78f;
+        float innerR = coinR * 0.78f;
+        if (innerW > 1.2f * SCALE) {
+            p.setStyle(Paint.Style.FILL);
+            p.setColor(0xFFFFC107); // Rich golden center
+            rf.set(cx - innerW, cyBob - innerR, cx + innerW, cyBob + innerR);
+            c.drawOval(rf, p);
+
+            // Inner engraved ring (milled border)
+            p.setStyle(Paint.Style.STROKE);
+            p.setColor(0x88FFE082);
+            p.setStrokeWidth(0.9f * SCALE);
+            rf.set(cx - innerW * 0.88f, cyBob - innerR * 0.88f, cx + innerW * 0.88f, cyBob + innerR * 0.88f);
             c.drawOval(rf, p);
         }
+
+        // 6. Crisp 3D Faceted Vector Star Emblem (Anti-aliased vector paths)
+        if (absCos > 0.22f) {
+            float starOutR = 8.5f * SCALE;
+            float starInR = 4.2f * SCALE;
+            float[] sx = new float[10];
+            float[] sy = new float[10];
+
+            for (int i = 0; i < 10; i++) {
+                double rad = Math.toRadians(i * 36 - 90);
+                float r = (i % 2 == 0) ? starOutR : starInR;
+                sx[i] = cx + (float)Math.cos(rad) * r * absCos;
+                sy[i] = cyBob + (float)Math.sin(rad) * r;
+            }
+
+            // Draw 5 facets with alternating 3D lighting
+            for (int i = 0; i < 5; i++) {
+                int tip = i * 2;
+                int leftInner = (tip + 9) % 10;
+                int rightInner = (tip + 1) % 10;
+
+                // Left facet (Light source side)
+                pa.reset();
+                pa.moveTo(cx, cyBob);
+                pa.lineTo(sx[leftInner], sy[leftInner]);
+                pa.lineTo(sx[tip], sy[tip]);
+                pa.close();
+                p.setStyle(Paint.Style.FILL);
+                p.setColor(0xFFFFFDE7); // Highlighted facet
+                c.drawPath(pa, p);
+
+                // Right facet (Shadow side)
+                pa.reset();
+                pa.moveTo(cx, cyBob);
+                pa.lineTo(sx[tip], sy[tip]);
+                pa.lineTo(sx[rightInner], sy[rightInner]);
+                pa.close();
+                p.setColor(0xFFE65100); // Deep amber shadow facet
+                c.drawPath(pa, p);
+            }
+        }
+
+        // 7. Dynamic Metallic Gloss Reflection (Diagonal light sheen)
+        if (absCos > 0.30f) {
+            pa.reset();
+            float sheenW = coinW * 0.35f;
+            float sheenOffset = (float)Math.sin(timeMs * 0.003f + cx * 0.02f) * (coinW * 0.5f);
+            pa.moveTo(cx + sheenOffset - sheenW, cyBob - coinR * 0.75f);
+            pa.lineTo(cx + sheenOffset + sheenW, cyBob - coinR * 0.75f);
+            pa.lineTo(cx + sheenOffset - sheenW * 0.4f, cyBob + coinR * 0.75f);
+            pa.lineTo(cx + sheenOffset - sheenW * 1.4f, cyBob + coinR * 0.75f);
+            pa.close();
+
+            p.setStyle(Paint.Style.FILL);
+            p.setColor(0x35FFFFFF);
+            c.drawPath(pa, p);
+        }
+
+        // 8. Diamond Sparkle Twinkle (✦) on corner highlight
+        if (absCos > 0.78f) {
+            float glintProgress = (absCos - 0.78f) / 0.22f;
+            float glintX = cx + coinW * 0.52f;
+            float glintY = cyBob - coinR * 0.55f;
+            float gLen = (6.5f * SCALE) * glintProgress;
+            float gThick = (1.8f * SCALE) * glintProgress;
+
+            // Horizontal & vertical diamond cross flare
+            p.setStyle(Paint.Style.FILL);
+            p.setColor(0xFFFFD54F);
+            pa.reset();
+            pa.moveTo(glintX - gLen, glintY);
+            pa.lineTo(glintX, glintY - gThick);
+            pa.lineTo(glintX + gLen, glintY);
+            pa.lineTo(glintX, glintY + gThick);
+            pa.close();
+            c.drawPath(pa, p);
+
+            pa.reset();
+            pa.moveTo(glintX, glintY - gLen);
+            pa.lineTo(glintX + gThick, glintY);
+            pa.lineTo(glintX, glintY + gLen);
+            pa.lineTo(glintX - gThick, glintY);
+            pa.close();
+            c.drawPath(pa, p);
+
+            // White core center
+            p.setColor(0xFFFFFFFF);
+            c.drawCircle(glintX, glintY, 1.4f * SCALE * glintProgress, p);
+        }
+    }
+
+    private void drawMiniVectorCoin(Canvas c, float cx, float cy, float r) {
+        // Outer rim
+        p.setStyle(Paint.Style.FILL);
+        p.setColor(0xFFFFB300);
+        c.drawCircle(cx, cy, r, p);
+
+        // Highlight rim
+        p.setStyle(Paint.Style.STROKE);
+        p.setColor(0xFFFFF9C4);
+        p.setStrokeWidth(0.8f * SCALE);
+        c.drawCircle(cx, cy, r - 0.5f * SCALE, p);
+
+        // Inner face
+        p.setStyle(Paint.Style.FILL);
+        p.setColor(0xFFFFC107);
+        c.drawCircle(cx, cy, r * 0.72f, p);
+
+        // Center star
+        tp.setTypeface(tfBlack);
+        tp.setColor(0xFF8D5B00);
+        tp.setTextSize(r * 1.05f);
+        tp.setTextAlign(Paint.Align.CENTER);
+        tp.setFakeBoldText(true);
+        c.drawText("★", cx, cy + r * 0.36f, tp);
     }
 
     private void drawThemedObstacle(Canvas c, float x, float y, float w, float h, boolean isTop, int skinId) {
@@ -2440,7 +2598,7 @@ public class GameView extends View {
         float coinPillX = 14 * SCALE;
         float coinPillY = safeTop + 4 * SCALE;
         float coinPillH = 28 * SCALE;
-        float coinPillW = 82 * SCALE;
+        float coinPillW = 84 * SCALE;
         p.setStyle(Paint.Style.FILL);
         p.setColor(0x77000000);
         rf.set(coinPillX, coinPillY, coinPillX + coinPillW, coinPillY + coinPillH);
@@ -2451,12 +2609,15 @@ public class GameView extends View {
         p.setStrokeWidth(1.2f * SCALE);
         c.drawRoundRect(rf, 14 * SCALE, 14 * SCALE, p);
 
+        // Vector Mini Coin Icon
+        drawMiniVectorCoin(c, coinPillX + 14 * SCALE, coinPillY + coinPillH / 2, 7.0f * SCALE);
+
         tp.setTypeface(tfBlack);
         tp.setColor(0xFFFFD54F);
         tp.setTextSize(13 * SCALE);
         tp.setTextAlign(Paint.Align.LEFT);
         tp.setFakeBoldText(true);
-        c.drawText("🪙 " + sawitCoins, coinPillX + 8 * SCALE, coinPillY + 19 * SCALE, tp);
+        c.drawText(String.valueOf(sawitCoins), coinPillX + 25 * SCALE, coinPillY + 19 * SCALE, tp);
 
         tp.setTypeface(tfBlack);
         tp.setTextSize(46 * SCALE);
